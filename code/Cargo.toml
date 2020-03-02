@@ -7,9 +7,22 @@ authors = ["Martin Kielhorn <kielhorn.martin@gmail.com>"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-#chrono = "*"
+chrono = "*"
+
 glfw = "0.31.0"
 gl = "0.14.0"
 imgui-glfw-rs = "0.4.1"
 imgui = "0.1.0"
 imgui-opengl-renderer = "0.5.0"
+
+crossbeam-channel = "*"
+crossbeam-utils = "*"
+core_affinity = "*"
+industrial-io = "*" # 0.2.0
+
+fftw = "*"
+num-complex = "*"
+
+# this shaves 1MB off the binary (cargo build --release)
+[profile.release]
+panic = "abort"
