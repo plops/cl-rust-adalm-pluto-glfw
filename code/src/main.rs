@@ -1,12 +1,19 @@
 #[allow(unused_parens)]
 use chrono::{DateTime, Utc};
+extern crate chrono;
+extern crate core_affinity;
+extern crate crossbeam_channel;
+extern crate fftw;
 extern crate glfw;
 extern crate imgui;
 extern crate imgui_glfw_rs;
+extern crate industrial_io as iio;
+mod iio_reader;
 use glfw::{Action, Context, Key};
 use std::ffi::CString;
 use std::os::raw::c_void;
 fn main() {
+    iio_reader::iio_read();
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
     glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
     let (mut window, events) = glfw
