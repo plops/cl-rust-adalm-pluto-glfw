@@ -23,6 +23,15 @@ fn main() {
     gl::load_with(|symbol| {
         return window.get_proc_address(symbol);
     });
+    let mut data = Vec::with_capacity(((4096) * (128)));
+    let mut texture_id;
+    for i in 0..4096 {
+        for j in 0..128 {
+            data.push((j as u8));
+            data.push((i as u8));
+            data.push(((j + i) as u8));
+        }
+    }
     unsafe {
         gl::Enable(gl::BLEND);
         gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
@@ -31,6 +40,7 @@ fn main() {
         gl::ClearColor(0.10, 0.10, 0.10, 1.0);
         let mut texture = 0;
         gl::GenTextures(1, &mut texture);
+        texture_id = imgui::TextureId::from((texture as usize));
         gl::BindTexture(gl::TEXTURE_2D, texture);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, (gl::REPEAT as i32));
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, (gl::REPEAT as i32));
@@ -47,7 +57,7 @@ fn main() {
             gl::UNSIGNED_BYTE,
             ((&(data[0]) as *const u8) as *const c_void),
         );
-    }
+    };
     let mut imgui = imgui::Context::create();
     let mut imgui_glfw = imgui_glfw_rs::ImguiGLFW::new(&mut imgui, &mut window);
     imgui.set_ini_filename(None);
@@ -59,6 +69,7 @@ fn main() {
             let ui = imgui_glfw.frame(&mut window, &mut imgui);
             ui.show_metrics_window(&mut true);
             ui.text("bla");
+            ui.image(texture_id, [4096., 128.]);
             ui.show_demo_window(&mut true);
             imgui_glfw.draw(ui, &mut window);
         }

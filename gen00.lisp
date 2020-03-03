@@ -114,34 +114,46 @@ panic = \"abort\"
 		  (lambda (symbol)
 		    (return (dot window
 				 (get_proc_address symbol)))))
-		 (space unsafe
-			(progn
-			  (gl--Enable gl--BLEND)
-			  (gl--BlendFunc gl--SRC_ALPHA gl--ONE_MINUS_SRC_ALPHA)
-			  (gl--Enable gl--DEPTH_TEST)
-			  (gl--DepthFunc gl--LESS)
-			  (gl--ClearColor .1s0 .1s0 .1s0 1s0)
 
-			  (do0
-			   ;; https://github.com/bwasty/learn-opengl-rs/blob/master/src/_1_getting_started/_4_1_textures.rs
-			   (let* ((texture 0))
-			     (gl--GenTextures 1 "&mut texture")
-			     (gl--BindTexture gl--TEXTURE_2D texture)
-			     (gl--TexParameteri gl--TEXTURE_2D gl--TEXTURE_WRAP_S (coerce gl--REPEAT i32))
-			     (gl--TexParameteri gl--TEXTURE_2D gl--TEXTURE_WRAP_T (coerce gl--REPEAT i32))
-			     (gl--TexParameteri gl--TEXTURE_2D gl--TEXTURE_MIN_FILTER (coerce gl--LINEAR i32))
-			     (gl--TexParameteri gl--TEXTURE_2D gl--TEXTURE_MAG_FILTER (coerce gl--LINEAR i32))
-			     (gl--TexImage2D gl--TEXTURE_2D 0
-					     (coerce gl--RGB i32)
-					     (coerce ,tex-width i32)
-					     (coerce ,tex-height i32)
-					     0
-					     gl--RGB
-					     gl--UNSIGNED_BYTE
-					     (coerce (coerce (ref (aref data 0))
-							     "*const u8")
-						     "*const c_void"))))
-			  ))
+		 (let* ((data (Vec--with_capacity (* ,tex-width
+						     ,tex-height)))
+			;; std--borrow--Cow--Owned data
+			;; data.as_ptr as *const std--ffi--c_void
+			(texture_id))
+		   (for (i (slice 0 ,tex-width))
+			(for (j (slice 0 ,tex-height))
+			     (data.push (coerce j u8))
+			     (data.push (coerce i u8))
+			     (data.push (coerce (+ j i) u8))))
+		  (space unsafe
+			 (progn
+			   (gl--Enable gl--BLEND)
+			   (gl--BlendFunc gl--SRC_ALPHA gl--ONE_MINUS_SRC_ALPHA)
+			   (gl--Enable gl--DEPTH_TEST)
+			   (gl--DepthFunc gl--LESS)
+			   (gl--ClearColor .1s0 .1s0 .1s0 1s0)
+
+			   (do0
+			    ;; https://github.com/bwasty/learn-opengl-rs/blob/master/src/_1_getting_started/_4_1_textures.rs
+			    (let* ((texture 0))
+			      (gl--GenTextures 1 "&mut texture")
+			      (setf texture_id (imgui--TextureId--from (coerce texture usize)))
+			      (gl--BindTexture gl--TEXTURE_2D texture)
+			      (gl--TexParameteri gl--TEXTURE_2D gl--TEXTURE_WRAP_S (coerce gl--REPEAT i32))
+			      (gl--TexParameteri gl--TEXTURE_2D gl--TEXTURE_WRAP_T (coerce gl--REPEAT i32))
+			      (gl--TexParameteri gl--TEXTURE_2D gl--TEXTURE_MIN_FILTER (coerce gl--LINEAR i32))
+			      (gl--TexParameteri gl--TEXTURE_2D gl--TEXTURE_MAG_FILTER (coerce gl--LINEAR i32))
+			      (gl--TexImage2D gl--TEXTURE_2D 0
+					      (coerce gl--RGB i32)
+					      (coerce ,tex-width i32)
+					      (coerce ,tex-height i32)
+					      0
+					      gl--RGB
+					      gl--UNSIGNED_BYTE
+					      (coerce (coerce (ref (aref data 0))
+							      "*const u8")
+						      "*const c_void"))))
+			   )))
 
 
 		 
@@ -172,6 +184,8 @@ panic = \"abort\"
 						  "&mut imgui")))
 			(ui.show_metrics_window "&mut true")
 			(ui.text (string "bla"))
+			(ui.image texture_id (list ,(* 1s0 tex-width)
+						 ,(* 1s0 tex-height)))
 			(ui.show_demo_window "&mut true")
 			(imgui_glfw.draw ui "&mut window")))
 		     
