@@ -71,7 +71,8 @@ fn main() {
             ui.show_metrics_window(&mut true);
             imgui::Window::new(&ui, im_str!("hello")).build(|| {
                 ui.text("bla2");
-                ui.image(texture_id, [128., 128.]);
+                ui.image(texture_id, [128., 128.]).build();
+                ui.text("bla3");
             });
             ui.show_demo_window(&mut true);
             imgui_glfw.draw(ui, &mut window);

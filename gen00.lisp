@@ -190,8 +190,10 @@ panic = \"abort\"
 			(dot (imgui--Window--new &ui (im_str! (string "hello")))
 			     (build (lambda ()
 				      (ui.text (string "bla2"))
-				      (ui.image texture_id (list ,(* 1s0 tex-width)
-						 ,(* 1s0 tex-height))))))
+				     (dot (ui.image texture_id (list ,(* 1s0 tex-width)
+								     ,(* 1s0 tex-height)))
+					  (build))
+				      (ui.text (string "bla3")))))
 			;(ui.text (string "bla"))
 			
 			(ui.show_demo_window "&mut true")
