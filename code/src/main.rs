@@ -42,10 +42,6 @@ fn main() {
             ui.show_demo_window(&mut true);
             imgui_glfw.draw(ui, &mut window);
         }
-        {
-            let ui = imgui_glfw.frame(&mut window, &mut imgui);
-            imgui_glfw.draw(ui, &mut window);
-        }
         window.swap_buffers();
         glfw.poll_events();
         for (_, event) in glfw::flush_messages(&events) {
