@@ -23,9 +23,9 @@ fn main() {
     gl::load_with(|symbol| {
         return window.get_proc_address(symbol);
     });
-    let mut data = Vec::with_capacity(((4096) * (128)));
+    let mut data = Vec::with_capacity(((128) * (128)));
     let mut texture_id;
-    for i in 0..4096 {
+    for i in 0..128 {
         for j in 0..128 {
             data.push((j as u8));
             data.push((i as u8));
@@ -50,7 +50,7 @@ fn main() {
             gl::TEXTURE_2D,
             0,
             (gl::RGB as i32),
-            (4096 as i32),
+            (128 as i32),
             (128 as i32),
             0,
             gl::RGB,
@@ -68,15 +68,13 @@ fn main() {
         {
             let ui = imgui_glfw.frame(&mut window, &mut imgui);
             ui.show_metrics_window(&mut true);
-            ui.text("bla");
-            ui.image(texture_id, [4096., 128.]);
+            ui.image(texture_id, [128., 128.]);
             ui.show_demo_window(&mut true);
             imgui_glfw.draw(ui, &mut window);
         }
         window.swap_buffers();
         glfw.poll_events();
         for (_, event) in glfw::flush_messages(&events) {
-            println!("{:?}", event);
             imgui_glfw.handle_event(&mut imgui, &event);
             match event {
                 glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {

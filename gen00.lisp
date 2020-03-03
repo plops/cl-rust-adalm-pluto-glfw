@@ -71,7 +71,7 @@ panic = \"abort\"
 	    ))
   (let ((screen-width 512)
 	(screen-height 512)
-	(tex-width 4096)
+	(tex-width 128)
 	(tex-height 128))
     (define-module
 	`(main
@@ -183,7 +183,7 @@ panic = \"abort\"
 		      (let ((ui (imgui_glfw.frame "&mut window"
 						  "&mut imgui")))
 			(ui.show_metrics_window "&mut true")
-			(ui.text (string "bla"))
+			;(ui.text (string "bla"))
 			(ui.image texture_id (list ,(* 1s0 tex-width)
 						 ,(* 1s0 tex-height)))
 			(ui.show_demo_window "&mut true")
@@ -194,7 +194,7 @@ panic = \"abort\"
 		     (for ((values _ event)
 			   (glfw--flush_messages &events))
 					;,(logprint "event" `(event))
-			  (println! (string "{:?}")
+			  #+nil (println! (string "{:?}")
 				    event)
 			  (imgui_glfw.handle_event
 			   "&mut imgui"
