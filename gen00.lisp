@@ -145,14 +145,10 @@ panic = \"abort\"
 		      (let ((ui (imgui_glfw.frame "&mut window"
 						  "&mut imgui")))
 			(ui.show_metrics_window "&mut true")
-			;(ui.show_demo_window "&mut true")
+			(ui.text (string "bla"))
+			(ui.show_demo_window "&mut true")
 			(imgui_glfw.draw ui "&mut window")))
-		     #+nil (progn 
-		      (let ((ui2 (imgui_glfw.frame "&mut window"
-						  "&mut imgui")))
-			;(ui.text (string "bla"))
-			;(ui.show_metrics_window "&mut true")
-			(imgui_glfw.draw ui2 "&mut window")))
+		     
 		     (window.swap_buffers)
 		     (glfw.poll_events)
 		     (for ((values _ event)
