@@ -70,7 +70,9 @@ panic = \"abort\"
 
 	    ))
   (let ((screen-width 512)
-	(screen-height 512))
+	(screen-height 512)
+	(tex-width 4096)
+	(tex-height 128))
     (define-module
 	`(main
 	  (do0
@@ -118,7 +120,31 @@ panic = \"abort\"
 			  (gl--BlendFunc gl--SRC_ALPHA gl--ONE_MINUS_SRC_ALPHA)
 			  (gl--Enable gl--DEPTH_TEST)
 			  (gl--DepthFunc gl--LESS)
-			  (gl--ClearColor .1s0 .1s0 .1s0 1s0)))
+			  (gl--ClearColor .1s0 .1s0 .1s0 1s0)
+
+			  (do0
+			   ;; https://github.com/bwasty/learn-opengl-rs/blob/master/src/_1_getting_started/_4_1_textures.rs
+			   (let* ((texture 0))
+			     (gl--GenTextures 1 "&mut texture")
+			     (gl--BindTexture gl--TEXTURE_2D texture)
+			     (gl--TexParameteri gl--TEXTURE_2D gl--TEXTURE_WRAP_S (coerce gl--REPEAT i32))
+			     (gl--TexParameteri gl--TEXTURE_2D gl--TEXTURE_WRAP_T (coerce gl--REPEAT i32))
+			     (gl--TexParameteri gl--TEXTURE_2D gl--TEXTURE_MIN_FILTER (coerce gl--LINEAR i32))
+			     (gl--TexParameteri gl--TEXTURE_2D gl--TEXTURE_MAG_FILTER (coerce gl--LINEAR i32))
+			     (gl--TexImage2D gl--TEXTURE_2D 0
+					     (coerce gl--RGB i32)
+					     (coerce ,tex-width i32)
+					     (coerce ,tex-height i32)
+					     0
+					     gl--RGB
+					     gl--UNSIGNED_BYTE
+					     (coerce (coerce (ref (aref data 0))
+							     "*const u8")
+						     "*const c_void"))))
+			  ))
+
+
+		 
 		 (let* ((imgui (imgui--Context--create))
 			(imgui_glfw (imgui_glfw_rs--ImguiGLFW--new
 				     "&mut imgui"
