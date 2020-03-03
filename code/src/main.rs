@@ -1,15 +1,16 @@
 #[allow(unused_parens)]
 use chrono::{DateTime, Utc};
+#[macro_use]
+extern crate imgui;
 extern crate chrono;
 extern crate core_affinity;
 extern crate crossbeam_channel;
 extern crate fftw;
-extern crate glfw;
-extern crate imgui;
 extern crate imgui_glfw_rs;
 extern crate industrial_io as iio;
 mod iio_reader;
-use glfw::{Action, Context, Key};
+use imgui_glfw_rs::glfw::{Action, Context, Key};
+use imgui_glfw_rs::ImguiGLFW;
 use std::ffi::CString;
 use std::os::raw::c_void;
 fn main() {
@@ -68,7 +69,10 @@ fn main() {
         {
             let ui = imgui_glfw.frame(&mut window, &mut imgui);
             ui.show_metrics_window(&mut true);
-            ui.image(texture_id, [128., 128.]);
+            imgui::Window::new(&ui, im_str!("hello")).build(|| {
+                ui.text("bla2");
+                ui.image(texture_id, [128., 128.]);
+            });
             ui.show_demo_window(&mut true);
             imgui_glfw.draw(ui, &mut window);
         }

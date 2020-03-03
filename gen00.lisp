@@ -76,8 +76,10 @@ panic = \"abort\"
     (define-module
 	`(main
 	  (do0
-	   "extern crate glfw;"
+	   ;"extern crate glfw;"
+	   "#[macro_use]"
 	   "extern crate imgui;"
+	   
 	   "extern crate imgui_glfw_rs;"
 	   "extern crate chrono;"
 
@@ -89,7 +91,9 @@ panic = \"abort\"
 	   
 
 	   "mod iio_reader;"
-	   (use (glfw (curly Action Context Key))
+	   (use (imgui_glfw_rs glfw (curly Action Context Key))
+		;(imgui_glfw_rs imgui)
+		(imgui_glfw_rs ImguiGLFW)
 		(std os raw c_void)
 		(std ffi CString))
 	       
@@ -183,9 +187,13 @@ panic = \"abort\"
 		      (let ((ui (imgui_glfw.frame "&mut window"
 						  "&mut imgui")))
 			(ui.show_metrics_window "&mut true")
+			(dot (imgui--Window--new &ui (im_str! (string "hello")))
+			     (build (lambda ()
+				      (ui.text (string "bla2"))
+				      (ui.image texture_id (list ,(* 1s0 tex-width)
+						 ,(* 1s0 tex-height))))))
 			;(ui.text (string "bla"))
-			(ui.image texture_id (list ,(* 1s0 tex-width)
-						 ,(* 1s0 tex-height)))
+			
 			(ui.show_demo_window "&mut true")
 			(imgui_glfw.draw ui "&mut window")))
 		     
