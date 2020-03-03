@@ -13,7 +13,6 @@ use glfw::{Action, Context, Key};
 use std::ffi::CString;
 use std::os::raw::c_void;
 fn main() {
-    iio_reader::iio_read();
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
     glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
     let (mut window, events) = glfw
@@ -45,7 +44,6 @@ fn main() {
         }
         {
             let ui = imgui_glfw.frame(&mut window, &mut imgui);
-            ui.show_metrics_window(&mut true);
             imgui_glfw.draw(ui, &mut window);
         }
         window.swap_buffers();
