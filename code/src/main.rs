@@ -39,7 +39,7 @@ fn main() {
         }
         {
             let ui = imgui_glfw.frame(&mut window, &mut imgui);
-            ui.show_demo_window(&mut true);
+            ui.show_metrics_window(&mut true);
             imgui_glfw.draw(ui, &mut window);
         }
         window.swap_buffers();

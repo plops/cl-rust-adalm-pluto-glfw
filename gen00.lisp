@@ -144,7 +144,8 @@ panic = \"abort\"
 		     (progn
 		      (let ((ui (imgui_glfw.frame "&mut window"
 						  "&mut imgui")))
-			(ui.show_demo_window "&mut true")
+			(ui.show_metrics_window "&mut true")
+			;(ui.show_demo_window "&mut true")
 			(imgui_glfw.draw ui "&mut window")))
 		     #+nil (progn 
 		      (let ((ui2 (imgui_glfw.frame "&mut window"
