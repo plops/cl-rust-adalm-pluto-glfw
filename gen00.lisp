@@ -131,6 +131,7 @@ panic = \"abort\"
 	       
 	   (defun main ()
 	     (let (((values s0 r0) (crossbeam_channel--bounded ,n-buf))
+		   (wait_group_pipeline_setup (crossbeam_utils--sync--WaitGroup--new))
 		   ((values s1 r1) (crossbeam_channel--bounded ,n-buf)))
 	      (let* (
 		     (fftin
@@ -236,23 +237,20 @@ panic = \"abort\"
 									       (unwrap))))
 							       (declare (type fftw--plan--C2CPlan64 plan))
 							       ,(logprint "finish fftw plan" `())
+							       (let ((wg (wait_group_pipeline_setup.clone)))
+								 ,(logprint "fft_processor waits for other pipeline threads" `())
+								 (wg.wait))
 							       (loop
 								  (let ((tup (dot r0
 										  (recv)
 										  (ok)
 										  (unwrap))))
 								    (declare (type usize tup))
-								    (let* (
-									   (ha (dot (aref fftin tup)
-										    (clone)
-										    ))
+								    (let* ((ha (dot (aref fftin tup) (clone)))
 									   (a (space "&mut" (dot ha
 												 (lock)
-												 (unwrap)
-												 )))
-									   
-									   (hb (dot (aref fftout tup)
-										    (clone)))
+												 (unwrap))))
+									   (hb (dot (aref fftout tup) (clone)))
 									   (b (space "&mut" (dot hb
 												 (lock)
 												 (unwrap)))))
@@ -268,6 +266,9 @@ panic = \"abort\"
 									   (send tup)
 									   (unwrap))))))))
 					      (let* ((count 0))
+						(let ((wg (wait_group_pipeline_setup.clone)))
+						  ,(logprint "sdr_reader waits for other pipeline threads" `())
+								 (wg.wait))
 						(loop
 						   (case (buf.refill)
 						     ((Err err)
@@ -303,8 +304,6 @@ panic = \"abort\"
 						   (when (<= ,n-buf count)
 						     (setf count 0))))))
 					   (unwrap))
-
-
 				      (dot (crossbeam_utils--thread--scope
 					    (lambda (scope)
 					      (dot scope
@@ -312,6 +311,9 @@ panic = \"abort\"
 						   (name (dot (string "fft_scaler")
 							      (into)))
 						   (spawn (lambda (_)
+							    (let ((wg (wait_group_pipeline_setup.clone)))
+							      ,(logprint "fft_scaler waits for other pipeline threads" `())
+								 (wg.wait))
 							    (loop
 							       (let ((tup (dot r1
 									       (recv)

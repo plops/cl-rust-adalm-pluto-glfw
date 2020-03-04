@@ -1,3 +1,25 @@
+
+Architecture:
+
+start a bunch of threads to form a pipeline
+
+read adc data (this thread runs on an isolated processor (kernel param isolcpus=0,1), in the hope that this reduces drops)
+perform fft of block
+convert complex fft result into something that can be displayed
+
+
+the pipeline threads run with crossbeam scope and can all access the memory
+memory contains a timestamp and an array
+threads talk to each other through bounded channels r0,s0,r1,s1
+threads transmit a single number, indicating which array has been processed by this stage
+
+at startup they all wait for the fft library to initialize with https://docs.rs/crossbeam/0.7.1/crossbeam/sync/struct.WaitGroup.html
+https://stjepang.github.io/2019/01/29/lock-free-rust-crossbeam-in-2019.html
+
+
+the visualizer imgui is running simultaneously and occasionally (60fps) updates the texture with the waterfall fft with the output of the last stage
+
+
 References:
 
 
