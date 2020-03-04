@@ -34,3 +34,8 @@ References:
 				;; https://stjepang.github.io/2019/01/29/lock-free-rust-crossbeam-in-2019.html scoped thread, atomic cell
 				 ;; https://users.rust-lang.org/t/how-can-i-allocate-aligned-memory-in-rust/33293 std::slice::from_raw_parts[_mut]
 				 ;; https://users.rust-lang.org/t/solved-how-to-move-non-send-between-threads-or-an-alternative/19928
+
+
+Reducing lag:
+https://www.khronos.org/opengl/wiki/Sync_Object
+https://www.khronos.org/registry/OpenGL/extensions/NV/WGL_NV_delay_before_swap.txt
