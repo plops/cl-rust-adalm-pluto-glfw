@@ -65,10 +65,62 @@ fn main() {
             ptr: fftw::array::AlignedVec::new(512),
         })),
     ];
+    let mut fftout_scaled: [Arc<Mutex<Vec<f32>>>; 12] = [
+        std::sync::Arc::new(std::sync::Mutex::new(Vec::with_capacity(512))),
+        std::sync::Arc::new(std::sync::Mutex::new(Vec::with_capacity(512))),
+        std::sync::Arc::new(std::sync::Mutex::new(Vec::with_capacity(512))),
+        std::sync::Arc::new(std::sync::Mutex::new(Vec::with_capacity(512))),
+        std::sync::Arc::new(std::sync::Mutex::new(Vec::with_capacity(512))),
+        std::sync::Arc::new(std::sync::Mutex::new(Vec::with_capacity(512))),
+        std::sync::Arc::new(std::sync::Mutex::new(Vec::with_capacity(512))),
+        std::sync::Arc::new(std::sync::Mutex::new(Vec::with_capacity(512))),
+        std::sync::Arc::new(std::sync::Mutex::new(Vec::with_capacity(512))),
+        std::sync::Arc::new(std::sync::Mutex::new(Vec::with_capacity(512))),
+        std::sync::Arc::new(std::sync::Mutex::new(Vec::with_capacity(512))),
+        std::sync::Arc::new(std::sync::Mutex::new(Vec::with_capacity(512))),
+    ];
     let core_ids = core_affinity::get_core_ids().unwrap();
     crossbeam_utils::thread::scope(|scope| {
         {
-            scope.spawn(| _|{
+            scope.builder().name("fft_scaler".into()).spawn(|_| {
+                let wg = barrier_pipeline_setup.clone();
+                {
+                    println!(
+                        "{} {}:{} fft_scaler waits for other pipeline threads ",
+                        Utc::now(),
+                        file!(),
+                        line!()
+                    );
+                }
+                wg.wait();
+                {
+                    println!(
+                        "{} {}:{} fft_scaler loop starts ",
+                        Utc::now(),
+                        file!(),
+                        line!()
+                    );
+                }
+                let mut count = 0;
+                loop {
+                    let tup: usize = r1.recv().ok().unwrap();
+                    let mut hc = fftout_scaled[count].clone();
+                    let mut c = &mut hc.lock().unwrap();
+                    let hb = fftout[tup].clone();
+                    let b = &hb.lock().unwrap();
+                    for i in 0..512 {
+                        c[i] = ((((b.ptr[i].re) * (b.ptr[i].re)) + ((b.ptr[i].im) * (b.ptr[i].im)))
+                            .ln() as f32);
+                    }
+                    count += 1;
+                    if (4) <= (count) {
+                        count = 0;
+                    };
+                }
+            });
+        }
+        {
+            scope.builder().name("fft_processor".into()).spawn(| _|{
                                                 let wg  = barrier_pipeline_setup.clone();
                                 {
                                         println!("{} {}:{} start fftw plan ", Utc::now(), file!(), line!());
@@ -88,7 +140,7 @@ fn main() {
                                                             let tup: usize  = r0.recv().ok().unwrap();
                                         let mut ha  = fftin[tup].clone();
                     let mut a  = &mut ha.lock().unwrap();
-                    let mut hb  = fftout[tup].clone();
+                                        let mut hb  = fftout[tup].clone();
                     let mut b  = &mut hb.lock().unwrap();
                                         plan.c2c(&mut a.ptr, &mut b.ptr).unwrap();
                                         b.timestamp=Utc::now();
@@ -100,44 +152,7 @@ fn main() {
 });
         }
         {
-            scope.spawn(|_| {
-                let wg = barrier_pipeline_setup.clone();
-                {
-                    println!(
-                        "{} {}:{} fft_scaler waits for other pipeline threads ",
-                        Utc::now(),
-                        file!(),
-                        line!()
-                    );
-                }
-                wg.wait();
-                {
-                    println!(
-                        "{} {}:{} fft_scaler loop starts ",
-                        Utc::now(),
-                        file!(),
-                        line!()
-                    );
-                }
-                loop {
-                    let tup: usize = r1.recv().ok().unwrap();
-                    let mut hb = fftout[tup].clone();
-                    let mut b = &mut hb.lock().unwrap();
-                    {
-                        println!(
-                            "{} {}:{} fft_scaler  tup={}  b.timestamp={}",
-                            Utc::now(),
-                            file!(),
-                            line!(),
-                            tup,
-                            b.timestamp
-                        );
-                    };
-                }
-            });
-        }
-        {
-            scope.spawn(|_| {
+            scope.builder().name("sdr_reader".into()).spawn(|_| {
                 let wg = barrier_pipeline_setup.clone();
                 core_affinity::set_for_current(core_affinity::CoreId { id: 0 });
                 let ctx = iio::Context::create_network("192.168.2.1").unwrap_or_else(|err_| {

@@ -74,7 +74,8 @@ panic = \"abort\"
 	(tex-width 128)
 	(tex-height 128)
 	(n-threads 3)
-	(n-buf (+ n-threads 1))
+	 (n-buf (+ n-threads 1))
+	 (n-buf-out 12)
 	(n-samples 512))
     (define-module
 	`(main
@@ -131,10 +132,11 @@ panic = \"abort\"
 	   
 	       
 	   (defun main ()
-	     (let (((values s0 r0) (crossbeam_channel--bounded ,n-buf))
+	     (let (((values s0 r0) (crossbeam_channel--bounded ,n-buf)) ;; sdr_receiver -> fft_processor
 					;(wait_group_pipeline_setup (crossbeam_utils--sync--WaitGroup--new))
 		   (barrier_pipeline_setup (std--sync--Arc--new (std--sync--Barrier--new ,n-threads)))
-		   ((values s1 r1) (crossbeam_channel--bounded ,n-buf)))
+		   ((values s1 r1) (crossbeam_channel--bounded ,n-buf)) ;; fft_processor -> fft_scaler
+		   #+nil ((values s2 r2) (crossbeam_channel--bounded ,n-buf))) ;; fft_scaler -> opengl
 	      (let* (
 		     (fftin
 
@@ -151,14 +153,16 @@ panic = \"abort\"
 				      )))))
 
 		     (fftout_scaled
-		      (list ,@(loop for i below n-buf collect
+		      (list ,@(loop for i below n-buf-out collect
 				   `(std--sync--Arc--new
 				     (std--sync--Mutex--new
-				      (Vec--with_capacity--<f32> ,n-samples)
+				      ;(format nil "[f32;~a]" n-samples)
+				      (Vec--with_capacity ,n-samples)
 				      )))))
 
 		    
 		     )
+		(declare (type ,(format nil "[Arc<Mutex<Vec<f32>>>;~a]" n-buf-out) fftout_scaled))
 
 		(let ((core_ids (dot (core_affinity--get_core_ids)
 				     (unwrap))))
@@ -166,7 +170,53 @@ panic = \"abort\"
 			     ,(logprint "affinity" `(a))))
 
 
-		,(let ((l `((fft_processor
+		,(let ((l `( (fft_scaler
+			     (do0
+			      (do0 ;let ((wg (wait_group_pipeline_setup.clone)))
+				,(logprint "fft_scaler waits for other pipeline threads" `())
+				(wg.wait)
+				)
+			      ,(logprint "fft_scaler loop starts" `())
+			      (let* ((count 0))
+			       (loop
+				  (let ((tup (dot r1
+						  (recv)
+						  (ok)
+						  (unwrap))))
+				    (declare (type usize tup))
+				    (let* ((hc (dot (aref fftout_scaled count)
+						    (clone)))
+					   (c (space "&mut" (dot hc
+								 (lock)
+								 (unwrap)))))
+				     (let ((hb (dot (aref fftout tup)
+						     (clone)))
+					    (b (space "&" (dot hb
+								  (lock)
+								  (unwrap)))))
+					;,(logprint "fft_scaler" `(tup b.timestamp))
+
+				      
+				       (for (i (slice 0 ,n-samples))
+					    (setf (aref c i) (coerce (dot (+ (* (dot (aref b.ptr i) re)
+									 (dot (aref b.ptr i) re))
+								      (* (dot (aref b.ptr i) im)
+									 (dot (aref b.ptr i) im)))
+									  (ln))
+								     f32)))
+
+				       #+nil (dot s1
+						  (send tup)
+						  (unwrap))
+
+
+				      
+				       (do0
+					(incf count)
+					(when (<= ,n-buf count)
+					  (setf count 0))))))))))
+			     
+			    (fft_processor
 			     (do0
 			      ,(logprint "start fftw plan" `())
 			      (let* ((plan (dot (fftw--plan--C2CPlan--aligned ,(format nil "&[~a]" n-samples)
@@ -188,51 +238,33 @@ panic = \"abort\"
 						   (unwrap))))
 				     (declare (type usize tup))
 				     (let* ((ha (dot (aref fftin tup)
-						     (clone)))
-					    (a (space "&mut" (dot ha
-								  (lock)
-								  (unwrap)
-								  )))
+						      (clone)))
+					     (a (space "&mut" (dot ha
+								   (lock)
+								   (unwrap)
+								   )))
 					    
-					    (hb (dot (aref fftout tup)
-						     (clone)))
-					    (b (space "&mut" (dot hb
-								  (lock)
-								  (unwrap)))))
-				       (do0
-					(dot plan
-					     (c2c "&mut a.ptr" "&mut b.ptr")
-					     (unwrap))
-					(setf b.timestamp (Utc--now)))
-				       ,(logprint "fft_processor send to fft_scaler" `(tup (- b.timestamp
-							      a.timestamp)
-							   (aref b.ptr 0)))
-				       (dot s1
-					    (send tup)
-					    (unwrap))))))))
+					   )
+				      (let* (
+					    
+					     (hb (dot (aref fftout tup)
+						      (clone)))
+					     (b (space "&mut" (dot hb
+								   (lock)
+								   (unwrap)))))
+					(do0
+					 (dot plan
+					      (c2c "&mut a.ptr" "&mut b.ptr")
+					      (unwrap))
+					 (setf b.timestamp (Utc--now)))
+					,(logprint "fft_processor send to fft_scaler" `(tup (- b.timestamp
+											       a.timestamp)
+											    (aref b.ptr 0)))
+					(dot s1
+					     (send tup)
+					     (unwrap)))))))))
 
-			    (fft_scaler
-			     (do0
-			      (do0 ;let ((wg (wait_group_pipeline_setup.clone)))
-				,(logprint "fft_scaler waits for other pipeline threads" `())
-				(wg.wait)
-				)
-			      ,(logprint "fft_scaler loop starts" `())
-			      (loop
-				 (let ((tup (dot r1
-						 (recv)
-						 (ok)
-						 (unwrap))))
-				   (declare (type usize tup))
-				   (let* ((hb (dot (aref fftout tup)
-						   (clone)))
-					  (b (space "&mut" (dot hb
-								(lock)
-								(unwrap)))))
-				     ,(logprint "fft_scaler" `(tup b.timestamp))
-				     #+nil (dot s1
-					  (send tup)
-					  (unwrap)))))))
+			   
 			    (sdr_reader
 			     (do0
 			      (core_affinity--set_for_current (make-instance core_affinity--CoreId :id 0))
@@ -330,9 +362,10 @@ panic = \"abort\"
 					     (dot s0
 						  (send count)
 						  (unwrap))
-					     (incf count)
-					     (when (<= ,n-buf count)
-					       (setf count 0))))))))))))
+					     (do0
+					      (incf count)
+					      (when (<= ,n-buf count)
+						(setf count 0)))))))))))))
 			    )))
 		   `(do0
 		     (dot
@@ -343,9 +376,16 @@ panic = \"abort\"
 			       `(progn
 				  (do0 
 				   (dot scope
+					(builder)
+					(name (dot (string ,name) (into)))
 					(spawn (space (lambda (_)
-							(let ((wg (barrier_pipeline_setup.clone) ;(wait_group_pipeline_setup.clone)
-								))
+							(let ((wg (barrier_pipeline_setup.clone)))
+							  ,code))))
+					)
+				   #+nil
+				   (dot scope
+					(spawn (space (lambda (_)
+							(let ((wg (barrier_pipeline_setup.clone)))
 							  ,code))))
 					)))
 			       #+nil(progn
