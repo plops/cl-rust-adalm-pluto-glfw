@@ -106,16 +106,23 @@ panic = \"abort\"
 	   (defun main ()
 
 	     (let* (
-		    (fftin (list ,@(loop for i below n-buf collect
-				 `(std--sync--Arc--new
-				   (std--sync--Mutex--new
-				    (make-instance SendComplex :timestamp (Utc--now) :ptr (fftw--array--AlignedVec--new ,n-samples))
-				    )))))
-		    (fftout (list ,@(loop for i below n-buf collect
-				  `(std--sync--Arc--new
-				    (std--sync--Mutex--new
-				     (make-instance SendComplex :timestamp (Utc--now) :ptr (fftw--array--AlignedVec--new ,n-samples))
-				     )))))))
+		    (fftin
+
+		     (std--sync--Arc--new
+		      (std--sync--Mutex--new
+		       (list ,@(loop for i below n-buf collect
+				    `(std--sync--Arc--new
+				      (std--sync--Mutex--new
+				       (make-instance SendComplex :timestamp (Utc--now) :ptr (fftw--array--AlignedVec--new ,n-samples))
+				       )))))))
+		    (fftout
+		     (std--sync--Arc--new
+		      (std--sync--Mutex--new
+		       (list ,@(loop for i below n-buf collect
+				    `(std--sync--Arc--new
+				      (std--sync--Mutex--new
+				       (make-instance SendComplex :timestamp (Utc--now) :ptr (fftw--array--AlignedVec--new ,n-samples))
+				       )))))))))
 	     
 	     
 	     
@@ -281,8 +288,8 @@ panic = \"abort\"
 	   
 	   (space pub
 
-		  (defun iio_read ("fftin : [Arc<Mutex<SendComplex>>;3]"
-				   "fftout : [Arc<Mutex<SendComplex>>;3]"
+		  (defun iio_read ("fftin : Arc<Mutex<[Arc<Mutex<SendComplex>>;3]>>"
+				   "fftout : Arc<Mutex<[Arc<Mutex<SendComplex>>;3]>>"
 				   "send_to_fft_scaler : crossbeam_channel::Sender<usize>"
 				   )
 	      (let ((core_ids (dot (core_affinity--get_core_ids)
@@ -395,14 +402,20 @@ panic = \"abort\"
 										    (ok)
 										    (unwrap))))
 								      (declare (type usize tup))
-								      (let* ((ha (dot (aref fftin tup)
+								      (let* ((hfftin (dot fftin (clone)))
+									     (lfftin (dot hfftin (lock) (unwrap)))
+
+									     (ha (dot (aref lfftin tup)
 										      (clone)
 										      ))
 									     (a (space "&mut" (dot ha
 												   (lock)
 												   (unwrap)
 												   )))
-									     (hb (dot (aref fftout tup)
+									     (hfftout (dot fftout (clone)))
+									     (lfftout (dot hfftout (lock) (unwrap)))
+
+									     (hb (dot (aref lfftout tup)
 										      (clone)))
 									     (b (space "&mut" (dot hb
 												   (lock)
@@ -428,7 +441,10 @@ panic = \"abort\"
 						     ;; https://users.rust-lang.org/t/solved-how-to-move-non-send-between-threads-or-an-alternative/19928
 						     (progn
 						       (let ((time_acquisition (Utc--now)))
-							 (let* ((ha (dot (aref fftin count)
+							 (let* ((hfftin (dot fftin (clone)))
+								(lfftin (dot hfftin (lock) (unwrap)))
+
+								(ha (dot (aref lfftin count)
 									 (clone)))
 								(a (space "&mut" (dot ha
 										      (lock)
@@ -467,7 +483,7 @@ panic = \"abort\"
 	   
 	   (space pub
 		  (defun fft_scaler  (
-				   "fftout : [Arc<Mutex<iio_reader::SendComplex>>;3]"
+				   "fftout : Arc<Mutex<[Arc<Mutex<iio_reader::SendComplex>>;3]>>"
 				   "recv_at_fft_scaler : crossbeam_channel::Receiver<usize>"
 				   )
 		    
@@ -487,7 +503,10 @@ panic = \"abort\"
 					     (ok)
 					     (unwrap))))
 			       (declare (type usize tup))
-			       (let* ((hb (dot (aref fftout tup)
+			       (let* ((hfftout (dot fftout (clone)))
+				      (lfftout (dot hfftout (lock) (unwrap)))
+
+				      (hb (dot (aref lfftout tup)
 					       (clone)))
 				      (b (space "&mut" (dot hb
 							    (lock)

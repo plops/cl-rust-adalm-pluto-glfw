@@ -12,8 +12,8 @@ pub struct SendComplex {
 }
 unsafe impl Send for SendComplex {}
 pub fn iio_read(
-    fftin: [Arc<Mutex<SendComplex>>; 3],
-    fftout: [Arc<Mutex<SendComplex>>; 3],
+    fftin: Arc<Mutex<[Arc<Mutex<SendComplex>>; 3]>>,
+    fftout: Arc<Mutex<[Arc<Mutex<SendComplex>>; 3]>>,
     send_to_fft_scaler: crossbeam_channel::Sender<usize>,
 ) {
     let core_ids = core_affinity::get_core_ids().unwrap();
@@ -139,9 +139,13 @@ pub fn iio_read(
                 }
                 loop {
                     let tup: usize = r.recv().ok().unwrap();
-                    let mut ha = fftin[tup].clone();
+                    let mut hfftin = fftin.clone();
+                    let mut lfftin = hfftin.lock().unwrap();
+                    let mut ha = lfftin[tup].clone();
                     let mut a = &mut ha.lock().unwrap();
-                    let mut hb = fftout[tup].clone();
+                    let mut hfftout = fftout.clone();
+                    let mut lfftout = hfftout.lock().unwrap();
+                    let mut hb = lfftout[tup].clone();
                     let mut b = &mut hb.lock().unwrap();
                     plan.c2c(&mut a.ptr, &mut b.ptr).unwrap();
                     b.timestamp = Utc::now();
@@ -178,7 +182,9 @@ pub fn iio_read(
                 }
                 {
                     let time_acquisition = Utc::now();
-                    let mut ha = fftin[count].clone();
+                    let mut hfftin = fftin.clone();
+                    let mut lfftin = hfftin.lock().unwrap();
+                    let mut ha = lfftin[count].clone();
                     let mut a = &mut ha.lock().unwrap();
                     let data_i: Vec<i16> = buf.channel_iter::<i16>(&(chans[0])).collect();
                     let data_q: Vec<i16> = buf.channel_iter::<i16>(&(chans[1])).collect();

@@ -16,7 +16,7 @@ use imgui_glfw_rs::ImguiGLFW;
 use std::ffi::CString;
 use std::os::raw::c_void;
 fn main() {
-    let mut fftin = [
+    let mut fftin = std::sync::Arc::new(std::sync::Mutex::new([
         std::sync::Arc::new(std::sync::Mutex::new(SendComplex {
             timestamp: Utc::now(),
             ptr: fftw::array::AlignedVec::new(512),
@@ -29,8 +29,8 @@ fn main() {
             timestamp: Utc::now(),
             ptr: fftw::array::AlignedVec::new(512),
         })),
-    ];
-    let mut fftout = [
+    ]));
+    let mut fftout = std::sync::Arc::new(std::sync::Mutex::new([
         std::sync::Arc::new(std::sync::Mutex::new(SendComplex {
             timestamp: Utc::now(),
             ptr: fftw::array::AlignedVec::new(512),
@@ -43,7 +43,7 @@ fn main() {
             timestamp: Utc::now(),
             ptr: fftw::array::AlignedVec::new(512),
         })),
-    ];
+    ]));
     let (send_to_fft_scaler, recv_at_fft_scaler) = crossbeam_channel::bounded(3);
     let count: usize = 1;
     send_to_fft_scaler.send(count).unwrap();
