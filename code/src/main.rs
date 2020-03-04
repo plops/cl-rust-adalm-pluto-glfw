@@ -9,11 +9,44 @@ extern crate fftw;
 extern crate imgui_glfw_rs;
 extern crate industrial_io as iio;
 mod iio_reader;
+use iio_reader::SendComplex;
 use imgui_glfw_rs::glfw::{Action, Context, Key};
 use imgui_glfw_rs::ImguiGLFW;
 use std::ffi::CString;
 use std::os::raw::c_void;
 fn main() {
+    let mut fftin = [
+        std::sync::Arc::new(std::sync::Mutex::new(SendComplex {
+            timestamp: Utc::now(),
+            ptr: fftw::array::AlignedVec::new(512),
+        })),
+        std::sync::Arc::new(std::sync::Mutex::new(SendComplex {
+            timestamp: Utc::now(),
+            ptr: fftw::array::AlignedVec::new(512),
+        })),
+        std::sync::Arc::new(std::sync::Mutex::new(SendComplex {
+            timestamp: Utc::now(),
+            ptr: fftw::array::AlignedVec::new(512),
+        })),
+    ];
+    let mut fftout = [
+        std::sync::Arc::new(std::sync::Mutex::new(SendComplex {
+            timestamp: Utc::now(),
+            ptr: fftw::array::AlignedVec::new(512),
+        })),
+        std::sync::Arc::new(std::sync::Mutex::new(SendComplex {
+            timestamp: Utc::now(),
+            ptr: fftw::array::AlignedVec::new(512),
+        })),
+        std::sync::Arc::new(std::sync::Mutex::new(SendComplex {
+            timestamp: Utc::now(),
+            ptr: fftw::array::AlignedVec::new(512),
+        })),
+    ];
+    let (send_to_fft_scaler, recv_at_fft_scaler) = crossbeam_channel::bounded(3);
+    let count: usize = 1;
+    send_to_fft_scaler.send(count).unwrap();
+    iio_reader::iio_read(fftin, fftout, send_to_fft_scaler);
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
     glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
     let (mut window, events) = glfw

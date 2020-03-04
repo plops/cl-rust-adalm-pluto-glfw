@@ -6,7 +6,16 @@ use fftw::plan::C2CPlan;
 use std::io;
 use std::sync::{Arc, Mutex};
 use std::thread::spawn;
-pub fn iio_read() {
+pub struct SendComplex {
+    pub timestamp: DateTime<Utc>,
+    pub ptr: fftw::array::AlignedVec<num_complex::Complex<f64>>,
+}
+unsafe impl Send for SendComplex {}
+pub fn iio_read(
+    fftin: [Arc<Mutex<SendComplex>>; 3],
+    fftout: [Arc<Mutex<SendComplex>>; 3],
+    send_to_fft_scaler: crossbeam_channel::Sender<usize>,
+) {
     let core_ids = core_affinity::get_core_ids().unwrap();
     let b = std::thread::Builder::new().name("pluto_reader".into());
     let reader_thread = b.spawn(move || {
@@ -97,12 +106,8 @@ pub fn iio_read() {
                 );
             }
         };
-        struct SendComplex {
-            timestamp: DateTime<Utc>,
-            ptr: fftw::array::AlignedVec<num_complex::Complex<f64>>,
-        }
-        unsafe impl Send for SendComplex {}
         let (s, r) = crossbeam_channel::bounded(3);
+        let mut chans = Vec::new();
         let mut buf = dev.create_buffer(512, false).unwrap_or_else(|err| {
             {
                 println!(
@@ -115,35 +120,6 @@ pub fn iio_read() {
             }
             std::process::exit(3);
         });
-        let mut fftin = [
-            std::sync::Arc::new(Mutex::new(SendComplex {
-                timestamp: Utc::now(),
-                ptr: fftw::array::AlignedVec::new(512),
-            })),
-            std::sync::Arc::new(Mutex::new(SendComplex {
-                timestamp: Utc::now(),
-                ptr: fftw::array::AlignedVec::new(512),
-            })),
-            std::sync::Arc::new(Mutex::new(SendComplex {
-                timestamp: Utc::now(),
-                ptr: fftw::array::AlignedVec::new(512),
-            })),
-        ];
-        let mut fftout = [
-            std::sync::Arc::new(Mutex::new(SendComplex {
-                timestamp: Utc::now(),
-                ptr: fftw::array::AlignedVec::new(512),
-            })),
-            std::sync::Arc::new(Mutex::new(SendComplex {
-                timestamp: Utc::now(),
-                ptr: fftw::array::AlignedVec::new(512),
-            })),
-            std::sync::Arc::new(Mutex::new(SendComplex {
-                timestamp: Utc::now(),
-                ptr: fftw::array::AlignedVec::new(512),
-            })),
-        ];
-        let mut chans = Vec::new();
         for ch in dev.channels() {
             chans.push(ch);
         }
@@ -179,7 +155,8 @@ pub fn iio_read() {
                             (b.timestamp - a.timestamp),
                             b.ptr[0]
                         );
-                    };
+                    }
+                    send_to_fft_scaler.send(tup).unwrap();
                 }
             });
             let mut count = 0;
