@@ -132,8 +132,7 @@ fn main() {
                             tup,
                             b.timestamp
                         );
-                    }
-                    s1.send(tup).unwrap();
+                    };
                 }
             });
         }

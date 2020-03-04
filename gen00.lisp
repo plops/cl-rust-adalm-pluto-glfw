@@ -223,7 +223,7 @@ panic = \"abort\"
 								(lock)
 								(unwrap)))))
 				     ,(logprint "fft_scaler" `(tup b.timestamp))
-				     (dot s1
+				     #+nil (dot s1
 					  (send tup)
 					  (unwrap)))))))
 			    (sdr_reader
