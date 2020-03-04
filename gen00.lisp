@@ -157,11 +157,56 @@ panic = \"abort\"
 			     ,(logprint "affinity" `(a))))
 
 
-		,(let ((l `((fft_scaler
+		,(let ((l `((fft_processor
+			     (do0
+			      ,(logprint "start fftw plan" `())
+			      (let* ((plan (dot (fftw--plan--C2CPlan--aligned ,(format nil "&[~a]" n-samples)
+									      fftw--types--Sign--Forward
+									      fftw--types--Flag--Measure)
+						(unwrap))))
+				(declare (type fftw--plan--C2CPlan64 plan))
+				,(logprint "finish fftw plan" `())
+				(let ((wg (wait_group_pipeline_setup.clone)))
+				  ,(logprint "fft_processor waits for other pipeline threads" `())
+				  (wg.wait)
+				  (drop wg)
+				 )
+				(loop
+				   (let ((tup (dot r0
+						   (recv)
+						   (ok)
+						   (unwrap))))
+				     (declare (type usize tup))
+				     (let* ((ha (dot (aref fftin tup)
+						     (clone)))
+					    (a (space "&mut" (dot ha
+								  (lock)
+								  (unwrap)
+								  )))
+					    
+					    (hb (dot (aref fftout tup)
+						     (clone)))
+					    (b (space "&mut" (dot hb
+								  (lock)
+								  (unwrap)))))
+				       (do0
+					(dot plan
+					     (c2c "&mut a.ptr" "&mut b.ptr")
+					     (unwrap))
+					(setf b.timestamp (Utc--now)))
+				       ,(logprint "" `(tup (- b.timestamp
+							      a.timestamp)
+							   (aref b.ptr 0)))
+				       (dot s1
+					    (send tup)
+					    (unwrap))))))))
+
+			    (fft_scaler
 			     (do0
 			      (let ((wg (wait_group_pipeline_setup.clone)))
 				,(logprint "fft_scaler waits for other pipeline threads" `())
-				(wg.wait))
+				(wg.wait)
+				)
 			      (loop
 				 (let ((tup (dot r1
 						 (recv)
@@ -241,7 +286,8 @@ panic = \"abort\"
 					(let* ((count 0))
 					  (let ((wg (wait_group_pipeline_setup.clone)))
 					   ,(logprint "sdr_reader waits for other pipeline threads" `())
-					   (wg.wait))
+					   (wg.wait)
+					   )
 					  (loop
 					     (case (buf.refill)
 					       ((Err err)
@@ -276,63 +322,30 @@ panic = \"abort\"
 					     (incf count)
 					     (when (<= ,n-buf count)
 					       (setf count 0))))))))))))
-			    (fft_processor
-			     (do0
-			      ,(logprint "start fftw plan" `())
-			      (let* ((plan (dot (fftw--plan--C2CPlan--aligned ,(format nil "&[~a]" n-samples)
-									      fftw--types--Sign--Forward
-									      fftw--types--Flag--Measure)
-						(unwrap))))
-				(declare (type fftw--plan--C2CPlan64 plan))
-				,(logprint "finish fftw plan" `())
-				(let ((wg (wait_group_pipeline_setup.clone)))
-				 ,(logprint "fft_processor waits for other pipeline threads" `())
-				 (wg.wait))
-				(loop
-				   (let ((tup (dot r0
-						   (recv)
-						   (ok)
-						   (unwrap))))
-				     (declare (type usize tup))
-				     (let* ((ha (dot (aref fftin tup)
-						     (clone)))
-					    (a (space "&mut" (dot ha
-								  (lock)
-								  (unwrap)
-								  )))
-					    
-					    (hb (dot (aref fftout tup)
-						     (clone)))
-					    (b (space "&mut" (dot hb
-								  (lock)
-								  (unwrap)))))
-				       (do0
-					(dot plan
-					     (c2c "&mut a.ptr" "&mut b.ptr")
-					     (unwrap))
-					(setf b.timestamp (Utc--now)))
-				       ,(logprint "" `(tup (- b.timestamp
-							      a.timestamp)
-							   (aref b.ptr 0)))
-				       (dot s1
-					    (send tup)
-					    (unwrap)))))))))))
-		 `(do0
-		   ,@(loop for (name code) in l collect
-			  `(progn
-			     (dot
-			     (crossbeam_utils--thread--scope
-			      (lambda (scope)
-				(dot scope
-					;(builder)
-				     #+nil (name (dot (string ,name)
-						      (into)))
+			    )))
+		   `(do0
+		     (dot
+		      (crossbeam_utils--thread--scope
+		       (lambda (scope)
+			,@(loop for (name code) in l collect
+			       `(dot scope
 				     (spawn (space move (lambda (_)
-							  ,code)))
+						,code)))
+				     )
+			       #+nil(progn
+					 (dot
+					  (crossbeam_utils--thread--scope
+					   (lambda (scope)
+					     (dot scope
+					;(builder)
+						  #+nil (name (dot (string ,name)
+								   (into)))
+						  (spawn (space move (lambda (_)
+								       ,code)))
 					;(unwrap)
-				     )))
+						  )))
 			    
-			     (unwrap))))))))
+					  (unwrap)))))))))))
 	     
 	     
 	     
@@ -527,6 +540,7 @@ panic = \"abort\"
 		       `(do0
 			 "#[allow(unused_parens)]"
 			 "#[allow(unused_imports)]"
+			 "#[allow(unused_variable)]"
 			 "#[allow(unused_mut)]"
 			 (use (chrono (curly DateTime Utc)))
 			 ,code)))))
