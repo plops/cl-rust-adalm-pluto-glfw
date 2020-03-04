@@ -152,17 +152,17 @@ panic = \"abort\"
 				      (make-instance SendComplex :timestamp (Utc--now) :ptr (fftw--array--AlignedVec--new ,n-samples))
 				      )))))
 
+		     
 		     (fftout_scaled
 		      (list ,@(loop for i below n-buf-out collect
-				   `(std--sync--Arc--new
-				     (std--sync--Mutex--new
-				      ;(format nil "[f32;~a]" n-samples)
-				      (Vec--with_capacity ,n-samples)
-				      )))))
+				   `(std--sync--Arc--new (std--sync--Mutex--new
+							  ,(format nil "[0.0;~a]" n-samples)
+							  #+nil
+							  (Vec--with_capacity ,n-samples))))))
 
 		    
 		     )
-		(declare (type ,(format nil "[Arc<Mutex<Vec<f32>>>;~a]" n-buf-out) fftout_scaled))
+		;(declare (type ,(format nil "[Arc<Mutex<Vec<f32>>>;~a]" n-buf-out) fftout_scaled))
 
 		(let ((core_ids (dot (core_affinity--get_core_ids)
 				     (unwrap))))

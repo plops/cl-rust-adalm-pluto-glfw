@@ -65,19 +65,19 @@ fn main() {
             ptr: fftw::array::AlignedVec::new(512),
         })),
     ];
-    let mut fftout_scaled: [Arc<Mutex<Vec<f32>>>; 12] = [
-        std::sync::Arc::new(std::sync::Mutex::new(Vec::with_capacity(512))),
-        std::sync::Arc::new(std::sync::Mutex::new(Vec::with_capacity(512))),
-        std::sync::Arc::new(std::sync::Mutex::new(Vec::with_capacity(512))),
-        std::sync::Arc::new(std::sync::Mutex::new(Vec::with_capacity(512))),
-        std::sync::Arc::new(std::sync::Mutex::new(Vec::with_capacity(512))),
-        std::sync::Arc::new(std::sync::Mutex::new(Vec::with_capacity(512))),
-        std::sync::Arc::new(std::sync::Mutex::new(Vec::with_capacity(512))),
-        std::sync::Arc::new(std::sync::Mutex::new(Vec::with_capacity(512))),
-        std::sync::Arc::new(std::sync::Mutex::new(Vec::with_capacity(512))),
-        std::sync::Arc::new(std::sync::Mutex::new(Vec::with_capacity(512))),
-        std::sync::Arc::new(std::sync::Mutex::new(Vec::with_capacity(512))),
-        std::sync::Arc::new(std::sync::Mutex::new(Vec::with_capacity(512))),
+    let mut fftout_scaled = [
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
     ];
     let core_ids = core_affinity::get_core_ids().unwrap();
     crossbeam_utils::thread::scope(|scope| {
