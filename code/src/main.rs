@@ -9,9 +9,7 @@ extern crate fftw;
 extern crate imgui_glfw_rs;
 extern crate industrial_io as iio;
 use crossbeam_channel::bounded;
-use fftw;
 use fftw::plan::C2CPlan;
-use iio_reader::SendComplex;
 use imgui_glfw_rs::glfw::{Action, Context, Key};
 use imgui_glfw_rs::ImguiGLFW;
 use std::ffi::CString;
@@ -25,6 +23,8 @@ pub struct SendComplex {
 }
 unsafe impl Send for SendComplex {}
 fn main() {
+    let (s0, r0) = crossbeam_channel::bounded(3);
+    let (s1, r1) = crossbeam_channel::bounded(3);
     let mut fftin = [
         std::sync::Arc::new(std::sync::Mutex::new(SendComplex {
             timestamp: Utc::now(),
@@ -143,7 +143,6 @@ fn main() {
                 );
             }
         };
-        let (s, r) = crossbeam_channel::bounded(3);
         let mut chans = Vec::new();
         let mut buf = dev.create_buffer(512, false).unwrap_or_else(|err| {
             {
@@ -175,14 +174,10 @@ fn main() {
                     println!("{} {}:{} finish fftw plan ", Utc::now(), file!(), line!());
                 }
                 loop {
-                    let tup: usize = r.recv().ok().unwrap();
-                    let mut hfftin = fftin.clone();
-                    let mut lfftin = hfftin.lock().unwrap();
-                    let mut ha = lfftin[tup].clone();
+                    let tup: usize = r0.recv().ok().unwrap();
+                    let mut ha = fftin[tup].clone();
                     let mut a = &mut ha.lock().unwrap();
-                    let mut hfftout = fftout.clone();
-                    let mut lfftout = hfftout.lock().unwrap();
-                    let mut hb = lfftout[tup].clone();
+                    let mut hb = fftout[tup].clone();
                     let mut b = &mut hb.lock().unwrap();
                     plan.c2c(&mut a.ptr, &mut b.ptr).unwrap();
                     b.timestamp = Utc::now();
@@ -197,7 +192,7 @@ fn main() {
                             b.ptr[0]
                         );
                     }
-                    send_to_fft_scaler.send(tup).unwrap();
+                    s1.send(tup).unwrap();
                 }
             });
             let mut count = 0;
@@ -219,9 +214,7 @@ fn main() {
                 }
                 {
                     let time_acquisition = Utc::now();
-                    let mut hfftin = fftin.clone();
-                    let mut lfftin = hfftin.lock().unwrap();
-                    let mut ha = lfftin[count].clone();
+                    let mut ha = fftin[count].clone();
                     let mut a = &mut ha.lock().unwrap();
                     let data_i: Vec<i16> = buf.channel_iter::<i16>(&(chans[0])).collect();
                     let data_q: Vec<i16> = buf.channel_iter::<i16>(&(chans[1])).collect();
@@ -239,7 +232,7 @@ fn main() {
                         count
                     );
                 }
-                s.send(count).unwrap();
+                s0.send(count).unwrap();
                 count += 1;
                 if (3) <= (count) {
                     count = 0;
@@ -248,10 +241,6 @@ fn main() {
         })
         .unwrap();
     });
-    let (send_to_fft_scaler, recv_at_fft_scaler) = crossbeam_channel::bounded(3);
-    let count: usize = 1;
-    send_to_fft_scaler.send(count).unwrap();
-    iio_reader::iio_read(fftin, fftout, send_to_fft_scaler);
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
     glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
     let (mut window, events) = glfw

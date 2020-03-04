@@ -98,7 +98,7 @@ panic = \"abort\"
 		(imgui_glfw_rs ImguiGLFW)
 		(std os raw c_void)
 		(std ffi CString)
-		(iio_reader SendComplex)
+		
 					
 		)
 
@@ -107,8 +107,7 @@ panic = \"abort\"
 		(std io)
 		(crossbeam_channel bounded))
 	   
-	   (use (fftw)
-		)
+	   
 	   
 	   (use 
 		(fftw plan C2CPlan)
@@ -238,7 +237,7 @@ panic = \"abort\"
 							       (declare (type fftw--plan--C2CPlan64 plan))
 							       ,(logprint "finish fftw plan" `())
 							       (loop
-								  (let ((tup (dot r
+								  (let ((tup (dot r0
 										  (recv)
 										  (ok)
 										  (unwrap))))
@@ -265,7 +264,7 @@ panic = \"abort\"
 								      ,(logprint "" `(tup (- b.timestamp
 											     a.timestamp)
 											  (aref b.ptr 0)))
-								      (dot send_to_fft_scaler
+								      (dot s1
 									   (send tup)
 									   (unwrap))))))))
 					      (let* ((count 0))
@@ -275,13 +274,9 @@ panic = \"abort\"
 						      ,(logprint "error filling buffer" `(err))
 						      (std--process--exit 4))
 						     (t "()"))
-						   ;; https://users.rust-lang.org/t/solved-how-to-move-non-send-between-threads-or-an-alternative/19928
 						   (progn
 						     (let ((time_acquisition (Utc--now)))
-						       (let* ((hfftin (dot fftin (clone)))
-							      (lfftin (dot hfftin (lock) (unwrap)))
-
-							      (ha (dot (aref lfftin count)
+						       (let* ((ha (dot (aref fftin count)
 								       (clone)))
 							      (a (space "&mut" (dot ha
 										    (lock)
@@ -301,31 +296,17 @@ panic = \"abort\"
 													     (coerce (aref data_q i)
 														     f64)))))))))
 						   ,(logprint "sender" `(count ))
-						   (dot s
+						   (dot s0
 							(send count)
 							(unwrap))
 						   (incf count)
 						   (when (<= ,n-buf count)
 						     (setf count 0))))))
-					   (unwrap)))))))))))))))
-
-
-		))
+					   (unwrap)))))))))))))))))
 	     
 	     
 	     
 	     
-	     
-	     (let (((values send_to_fft_scaler recv_at_fft_scaler) (crossbeam_channel--bounded ,n-buf)))
-					;(iio_reader--iio_read send_to_fft_scaler)
-	       (let ((count 1))
-		 (declare (type usize count))
-		 (dot send_to_fft_scaler
-		      (send count)
-		      (unwrap)))
-	       (iio_reader--iio_read fftin fftout send_to_fft_scaler)
-					;(fft_scaler--fft_scaler fftout recv_at_fft_scaler)
-	       )
 	     
 	     (let* ((glfw (dot (glfw--init glfw--FAIL_ON_ERRORS)
 			       (unwrap))))
