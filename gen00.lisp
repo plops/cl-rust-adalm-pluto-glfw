@@ -69,11 +69,12 @@ panic = \"abort\"
 
 
 	    ))
-  (let ((screen-width 512)
+  (let* ((screen-width 512)
 	(screen-height 512)
 	(tex-width 128)
 	(tex-height 128)
-	(n-buf 3)
+	(n-threads 3)
+	(n-buf (+ n-threads 1))
 	(n-samples 512))
     (define-module
 	`(main
@@ -132,7 +133,7 @@ panic = \"abort\"
 	   (defun main ()
 	     (let (((values s0 r0) (crossbeam_channel--bounded ,n-buf))
 					;(wait_group_pipeline_setup (crossbeam_utils--sync--WaitGroup--new))
-		   (barrier_pipeline_setup (std--sync--Arc--new (std--sync--Barrier--new 3)))
+		   (barrier_pipeline_setup (std--sync--Arc--new (std--sync--Barrier--new ,n-threads)))
 		   ((values s1 r1) (crossbeam_channel--bounded ,n-buf)))
 	      (let* (
 		     (fftin
@@ -196,7 +197,7 @@ panic = \"abort\"
 					     (c2c "&mut a.ptr" "&mut b.ptr")
 					     (unwrap))
 					(setf b.timestamp (Utc--now)))
-				       ,(logprint "" `(tup (- b.timestamp
+				       ,(logprint "fft_processor send to fft_scaler" `(tup (- b.timestamp
 							      a.timestamp)
 							   (aref b.ptr 0)))
 				       (dot s1

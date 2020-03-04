@@ -26,10 +26,14 @@ pub struct SendComplex {
 }
 unsafe impl Send for SendComplex {}
 fn main() {
-    let (s0, r0) = crossbeam_channel::bounded(3);
+    let (s0, r0) = crossbeam_channel::bounded(4);
     let barrier_pipeline_setup = std::sync::Arc::new(std::sync::Barrier::new(3));
-    let (s1, r1) = crossbeam_channel::bounded(3);
+    let (s1, r1) = crossbeam_channel::bounded(4);
     let mut fftin = [
+        std::sync::Arc::new(std::sync::Mutex::new(SendComplex {
+            timestamp: Utc::now(),
+            ptr: fftw::array::AlignedVec::new(512),
+        })),
         std::sync::Arc::new(std::sync::Mutex::new(SendComplex {
             timestamp: Utc::now(),
             ptr: fftw::array::AlignedVec::new(512),
@@ -56,63 +60,44 @@ fn main() {
             timestamp: Utc::now(),
             ptr: fftw::array::AlignedVec::new(512),
         })),
+        std::sync::Arc::new(std::sync::Mutex::new(SendComplex {
+            timestamp: Utc::now(),
+            ptr: fftw::array::AlignedVec::new(512),
+        })),
     ];
     let core_ids = core_affinity::get_core_ids().unwrap();
     crossbeam_utils::thread::scope(|scope| {
         {
-            scope.spawn(|_| {
-                let wg = barrier_pipeline_setup.clone();
+            scope.spawn(| _|{
+                                                let wg  = barrier_pipeline_setup.clone();
+                                {
+                                        println!("{} {}:{} start fftw plan ", Utc::now(), file!(), line!());
+}
+                                let mut plan: fftw::plan::C2CPlan64  = fftw::plan::C2CPlan::aligned(&[512], fftw::types::Sign::Forward, fftw::types::Flag::Measure).unwrap();
                 {
-                    println!("{} {}:{} start fftw plan ", Utc::now(), file!(), line!());
-                }
-                let mut plan: fftw::plan::C2CPlan64 = fftw::plan::C2CPlan::aligned(
-                    &[512],
-                    fftw::types::Sign::Forward,
-                    fftw::types::Flag::Measure,
-                )
-                .unwrap();
-                {
-                    println!("{} {}:{} finish fftw plan ", Utc::now(), file!(), line!());
-                }
-                {
-                    println!(
-                        "{} {}:{} fft_processor waits for other pipeline threads ",
-                        Utc::now(),
-                        file!(),
-                        line!()
-                    );
-                }
+                                        println!("{} {}:{} finish fftw plan ", Utc::now(), file!(), line!());
+}
+                                {
+                                        println!("{} {}:{} fft_processor waits for other pipeline threads ", Utc::now(), file!(), line!());
+}
                 wg.wait();
                 {
-                    println!(
-                        "{} {}:{} fft_processor loop starts ",
-                        Utc::now(),
-                        file!(),
-                        line!()
-                    );
-                }
+                                        println!("{} {}:{} fft_processor loop starts ", Utc::now(), file!(), line!());
+}
                 loop {
-                    let tup: usize = r0.recv().ok().unwrap();
-                    let mut ha = fftin[tup].clone();
-                    let mut a = &mut ha.lock().unwrap();
-                    let mut hb = fftout[tup].clone();
-                    let mut b = &mut hb.lock().unwrap();
-                    plan.c2c(&mut a.ptr, &mut b.ptr).unwrap();
-                    b.timestamp = Utc::now();
+                                                            let tup: usize  = r0.recv().ok().unwrap();
+                                        let mut ha  = fftin[tup].clone();
+                    let mut a  = &mut ha.lock().unwrap();
+                    let mut hb  = fftout[tup].clone();
+                    let mut b  = &mut hb.lock().unwrap();
+                                        plan.c2c(&mut a.ptr, &mut b.ptr).unwrap();
+                                        b.timestamp=Utc::now();
                     {
-                        println!(
-                            "{} {}:{}   tup={}  (b.timestamp-a.timestamp)={}  b.ptr[0]={}",
-                            Utc::now(),
-                            file!(),
-                            line!(),
-                            tup,
-                            (b.timestamp - a.timestamp),
-                            b.ptr[0]
-                        );
-                    }
+                                                println!("{} {}:{} fft_processor send to fft_scaler  tup={}  (b.timestamp-a.timestamp)={}  b.ptr[0]={}", Utc::now(), file!(), line!(), tup, (b.timestamp-a.timestamp), b.ptr[0]);
+}
                     s1.send(tup).unwrap();
-                }
-            });
+};
+});
         }
         {
             scope.spawn(|_| {
@@ -315,7 +300,7 @@ fn main() {
                     }
                     s0.send(count).unwrap();
                     count += 1;
-                    if (3) <= (count) {
+                    if (4) <= (count) {
                         count = 0;
                     };
                 }
