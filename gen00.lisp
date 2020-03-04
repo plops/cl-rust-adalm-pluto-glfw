@@ -261,12 +261,122 @@ panic = \"abort\"
 									    (c2c "&mut a.ptr" "&mut b.ptr")
 									    (unwrap))
 								       (setf b.timestamp (Utc--now)))
-								      ,(logprint "" `(tup (- b.timestamp
+								      ,(logprint "fft_processor" `(tup (- b.timestamp
 											     a.timestamp)
 											  (aref b.ptr 0)))
 								      (dot s1
 									   (send tup)
 									   (unwrap))))))))
+					      (let* ((count 0))
+						(loop
+						   (case (buf.refill)
+						     ((Err err)
+						      ,(logprint "error filling buffer" `(err))
+						      (std--process--exit 4))
+						     (t "()"))
+						   (progn
+						     (let ((time_acquisition (Utc--now)))
+						       (let* ((ha (dot (aref fftin count)
+								       (clone)))
+							      (a (space "&mut" (dot ha
+										    (lock)
+										    (unwrap)))))
+							 (let ((data_i (dot buf
+									    (channel_iter--<i16> (ref (aref chans 0)))
+									    (collect)))
+							       (data_q (dot buf
+									    (channel_iter--<i16> (ref (aref chans 1)))
+									    (collect))))
+							   (declare (type Vec<i16> data_i data_q))
+							   (do0
+							    (setf a.timestamp time_acquisition)
+							    (for (i (slice 0 ,n-samples))
+								 (setf (aref a.ptr i) (fftw--types--c64--new (coerce (aref data_i i)
+														     f64)
+													     (coerce (aref data_q i)
+														     f64)))))))))
+						   ,(logprint "sdr_reader" `(count ))
+						   (dot s0
+							(send count)
+							(unwrap))
+						   (incf count)
+						   (when (<= ,n-buf count)
+						     (setf count 0))))))
+					   (unwrap))
+
+
+				      (dot (crossbeam_utils--thread--scope
+					    (lambda (scope)
+					      (dot scope
+						   (builder)
+						   (name (dot (string "fft_scaler")
+							      (into)))
+						   (spawn (lambda (_)
+							    (loop
+							       (let ((tup (dot r1
+									       (recv)
+									       (ok)
+									       (unwrap))))
+								 (declare (type usize tup))
+								 (let* (
+									(hb (dot (aref fftout tup)
+										 (clone)))
+									(b (space "&mut" (dot hb
+											      (lock)
+											      (unwrap)))))
+								   ,(logprint "fft_scaler" `(tup b.timestamp))
+								   (dot s1
+									(send tup)
+									(unwrap)))))))
+						   (unwrap))))
+					   (unwrap))
+
+				      (dot (crossbeam_utils--thread--scope
+					    (lambda (scope)
+					      (dot scope
+						   (builder)
+						   (name (dot (string "fftw_processor")
+							      (into)))
+						   (spawn (lambda (_)
+							       ,(logprint "start fftw plan" `())
+							       (let* ((plan (dot (fftw--plan--C2CPlan--aligned ,(format nil "&[~a]" n-samples)
+													       fftw--types--Sign--Forward
+													       fftw--types--Flag--Measure)
+										 (unwrap))))
+								 (declare (type fftw--plan--C2CPlan64 plan))
+								 ,(logprint "finish fftw plan" `())
+								 (loop
+								    (let ((tup (dot r0
+										    (recv)
+										    (ok)
+										    (unwrap))))
+								      (declare (type usize tup))
+								      (let* (
+									     (ha (dot (aref fftin tup)
+										      (clone)
+										      ))
+									     (a (space "&mut" (dot ha
+												   (lock)
+												   (unwrap)
+												   )))
+									   
+									     (hb (dot (aref fftout tup)
+										      (clone)))
+									     (b (space "&mut" (dot hb
+												   (lock)
+												   (unwrap)))))
+									(do0
+									 (dot plan
+									      (c2c "&mut a.ptr" "&mut b.ptr")
+									      (unwrap))
+									 (setf b.timestamp (Utc--now)))
+									,(logprint "" `(tup (- b.timestamp
+											       a.timestamp)
+											    (aref b.ptr 0)))
+									(dot s1
+									     (send tup)
+									     (unwrap))))))))
+						   (unwrap))
 					      (let* ((count 0))
 						(loop
 						   (case (buf.refill)
@@ -302,7 +412,10 @@ panic = \"abort\"
 						   (incf count)
 						   (when (<= ,n-buf count)
 						     (setf count 0))))))
-					   (unwrap)))))))))))))))))
+					   (unwrap))
+
+
+				      )))))))))))))))
 	     
 	     
 	     
