@@ -8,6 +8,7 @@ extern crate crossbeam_channel;
 extern crate fftw;
 extern crate imgui_glfw_rs;
 extern crate industrial_io as iio;
+mod fft_scaler;
 mod iio_reader;
 use iio_reader::SendComplex;
 use imgui_glfw_rs::glfw::{Action, Context, Key};
@@ -47,6 +48,7 @@ fn main() {
     let count: usize = 1;
     send_to_fft_scaler.send(count).unwrap();
     iio_reader::iio_read(fftin, fftout, send_to_fft_scaler);
+    fft_scaler::fft_scaler(fftout, recv_at_fft_scaler);
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
     glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
     let (mut window, events) = glfw

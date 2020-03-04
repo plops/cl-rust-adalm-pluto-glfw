@@ -93,6 +93,7 @@ panic = \"abort\"
 	   
 
 	   "mod iio_reader;"
+	   "mod fft_scaler;"
 	   (use (imgui_glfw_rs glfw (curly Action Context Key))
 		;(imgui_glfw_rs imgui)
 		(imgui_glfw_rs ImguiGLFW)
@@ -128,7 +129,7 @@ panic = \"abort\"
 		     (send count)
 		     (unwrap)))
 	       (iio_reader--iio_read fftin fftout send_to_fft_scaler)
-	       ;(fft_scaler recv_at_fft_scaler)
+	       (fft_scaler--fft_scaler fftout recv_at_fft_scaler)
 	       )
 	     
 	     (let* ((glfw (dot (glfw--init glfw--FAIL_ON_ERRORS)
@@ -454,7 +455,7 @@ panic = \"abort\"
 						     (when (<= ,n-buf count)
 						       (setf count 0))))))
 					     (unwrap)))))))))))))))))))))
-    #+nil(define-module
+    (define-module
 	`(fft_scaler
 	  (do0
 
@@ -462,10 +463,13 @@ panic = \"abort\"
 		(std sync (curly Arc Mutex))
 		(std io)
 		(crossbeam_channel bounded)
-		)
+		(iio_reader))
 	   
 	   (space pub
-		  (defun fft_scaler (recv_at_fft_scaler)
+		  (defun fft_scaler  (
+				   "fftout : [Arc<Mutex<iio_reader::SendComplex>>;3]"
+				   "recv_at_fft_scaler : crossbeam_channel::Receiver<usize>"
+				   )
 		    
 		    (let ((b (dot (std--thread--Builder--new)
 			    (name (dot (string "fft_scaler")
@@ -477,123 +481,18 @@ panic = \"abort\"
 		       (lambda ()
 			 (do0
 
-
-			  (let
-			      
-			    (let			      ,(let ((n-buf 3)
-				     (n-samples 512))
-				 `(do0
-				   ;; https://users.rust-lang.org/t/how-can-i-allocate-aligned-memory-in-rust/33293 std::slice::from_raw_parts[_mut]
-				   (defstruct0 SendComplex
-				       (timestamp "DateTime<Utc>")
-				    
-				     (ptr
-				      "fftw::array::AlignedVec<num_complex::Complex<f64>>"
-					;"*mut num_complex::Complex<f64>"
-				      ))
-				   "unsafe impl Send for SendComplex {}"
-				   (let (((values s r) (crossbeam_channel--bounded 3))
-					 )
-
-				     (let* ((buf (dot dev
-						      ;; cyclic buffer only makes sense for output (to repeat waveform)
-						      (create_buffer ,n-samples false)
-						      (unwrap_or_else (lambda (err)
-									,(logprint (format nil "can't create buffer") `(err))
-									(std--process--exit 3)))))
-					   
-					    (fftin (list ,@(loop for i below n-buf collect
-								`(std--sync--Arc--new
-								  (Mutex--new
-								   (make-instance SendComplex :timestamp (Utc--now) :ptr (fftw--array--AlignedVec--new ,n-samples))
-								   )))))
-					    (fftout (list ,@(loop for i below n-buf collect
-								 `(std--sync--Arc--new
-								   (Mutex--new
-								    (make-instance SendComplex :timestamp (Utc--now) :ptr (fftw--array--AlignedVec--new ,n-samples))
-								    )))))
-					   
-					    (chans (Vec--new))
-					;(count 0)
-					    )
-
-				       (let* ()
-					 (do0 
-					  (for (ch (dev.channels))
-					       (chans.push ch))
-					  (dot (crossbeam_utils--thread--scope
-						(lambda (scope)
-						  (scope.spawn (lambda (_)
-								 ,(logprint "start fftw plan" `())
-								 (let* ((plan (dot (fftw--plan--C2CPlan--aligned ,(format nil "&[~a]" n-samples)
-														 fftw--types--Sign--Forward
-														 fftw--types--Flag--Measure)
-										   (unwrap))))
-								   (declare (type fftw--plan--C2CPlan64 plan))
-								   ,(logprint "finish fftw plan" `())
-								   (loop
-								      (let ((tup (dot r
-										      (recv)
-										      (ok)
-										      (unwrap))))
-									(declare (type usize tup))
-									(let* ((ha (dot (aref fftin tup)
-											(clone)
-											))
-									       (a (space "&mut" (dot ha
-												     (lock)
-												     (unwrap)
-												     )))
-									       (hb (dot (aref fftout tup)
-											(clone)))
-									       (b (space "&mut" (dot hb
-												     (lock)
-												     (unwrap)))))
-									  (do0
-									   (dot plan
-										(c2c "&mut a.ptr" "&mut b.ptr")
-										(unwrap))
-									   (setf b.timestamp (Utc--now)))
-									  ,(logprint "" `(tup (- b.timestamp
-												 a.timestamp)
-											      (aref b.ptr 0)))))))))
-						  (let* ((count 0))
-						    (loop
-						       (case (buf.refill)
-							 ((Err err)
-							  ,(logprint "error filling buffer" `(err))
-							  (std--process--exit 4))
-							 (t "()"))
-						       ;; https://users.rust-lang.org/t/solved-how-to-move-non-send-between-threads-or-an-alternative/19928
-						       (progn
-							 (let ((time_acquisition (Utc--now)))
-							   (let* ((ha (dot (aref fftin count)
-									   (clone)))
-								  (a (space "&mut" (dot ha
-											(lock)
-											(unwrap)))))
-							     (let ((data_i (dot buf
-										(channel_iter--<i16> (ref (aref chans 0)))
-										(collect)))
-								   (data_q (dot buf
-										(channel_iter--<i16> (ref (aref chans 1)))
-										(collect))))
-							       (declare (type Vec<i16> data_i data_q))
-							       (do0
-								(setf a.timestamp time_acquisition)
-								(for (i (slice 0 ,n-samples))
-								     (setf (aref a.ptr i) (fftw--types--c64--new (coerce (aref data_i i)
-															 f64)
-														 (coerce (aref data_q i)
-															 f64)))))))))
-						       ,(logprint "sender" `(count ))
-						       (dot s
-							    (send count)
-							    (unwrap))
-						       (incf count)
-						       (when (<= ,n-buf count)
-							 (setf count 0))))))
-					       (unwrap)))))))))))))))))))))))
+			  (loop
+			     (let ((tup (dot recv_at_fft_scaler
+					     (recv)
+					     (ok)
+					     (unwrap))))
+			       (declare (type usize tup))
+			       (let* ((hb (dot (aref fftout tup)
+					       (clone)))
+				      (b (space "&mut" (dot hb
+							    (lock)
+							    (unwrap)))))
+				 ))))))))))))))))
 
 
   (loop for e in (reverse *module*) and i from 0 do
