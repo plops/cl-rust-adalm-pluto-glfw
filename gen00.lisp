@@ -131,7 +131,8 @@ panic = \"abort\"
 	       
 	   (defun main ()
 	     (let (((values s0 r0) (crossbeam_channel--bounded ,n-buf))
-		   (wait_group_pipeline_setup (crossbeam_utils--sync--WaitGroup--new))
+					;(wait_group_pipeline_setup (crossbeam_utils--sync--WaitGroup--new))
+		   (barrier_pipeline_setup (std--sync--Arc--new (std--sync--Barrier--new 3)))
 		   ((values s1 r1) (crossbeam_channel--bounded ,n-buf)))
 	      (let* (
 		     (fftin
@@ -166,11 +167,12 @@ panic = \"abort\"
 						(unwrap))))
 				(declare (type fftw--plan--C2CPlan64 plan))
 				,(logprint "finish fftw plan" `())
-				(let ((wg (wait_group_pipeline_setup.clone)))
+				(do0 ;let ((wg (wait_group_pipeline_setup.clone)))
 				  ,(logprint "fft_processor waits for other pipeline threads" `())
 				  (wg.wait)
-				  (drop wg)
-				 )
+				  
+				  )
+				,(logprint "fft_processor loop starts" `())
 				(loop
 				   (let ((tup (dot r0
 						   (recv)
@@ -203,10 +205,11 @@ panic = \"abort\"
 
 			    (fft_scaler
 			     (do0
-			      (let ((wg (wait_group_pipeline_setup.clone)))
+			      (do0 ;let ((wg (wait_group_pipeline_setup.clone)))
 				,(logprint "fft_scaler waits for other pipeline threads" `())
 				(wg.wait)
 				)
+			      ,(logprint "fft_scaler loop starts" `())
 			      (loop
 				 (let ((tup (dot r1
 						 (recv)
@@ -284,10 +287,11 @@ panic = \"abort\"
 					(for (ch (dev.channels))
 					     (chans.push ch))
 					(let* ((count 0))
-					  (let ((wg (wait_group_pipeline_setup.clone)))
+					  (do0 ;let ((wg (wait_group_pipeline_setup.clone)))
 					   ,(logprint "sdr_reader waits for other pipeline threads" `())
 					   (wg.wait)
 					   )
+					  ,(logprint "sdr_reader loop starts" `())
 					  (loop
 					     (case (buf.refill)
 					       ((Err err)
@@ -326,12 +330,17 @@ panic = \"abort\"
 		   `(do0
 		     (dot
 		      (crossbeam_utils--thread--scope
+		       
 		       (lambda (scope)
 			,@(loop for (name code) in l collect
-			       `(dot scope
-				     (spawn (space move (lambda (_)
-						,code)))
-				     )
+			       `(progn
+				  (do0 
+				   (dot scope
+					(spawn (space (lambda (_)
+							(let ((wg (barrier_pipeline_setup.clone) ;(wait_group_pipeline_setup.clone)
+								))
+							  ,code))))
+					)))
 			       #+nil(progn
 					 (dot
 					  (crossbeam_utils--thread--scope
