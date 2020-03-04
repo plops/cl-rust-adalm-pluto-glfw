@@ -217,8 +217,7 @@ panic = \"abort\"
 						 (ok)
 						 (unwrap))))
 				   (declare (type usize tup))
-				   (let* (
-					  (hb (dot (aref fftout tup)
+				   (let* ((hb (dot (aref fftout tup)
 						   (clone)))
 					  (b (space "&mut" (dot hb
 								(lock)
