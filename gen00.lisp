@@ -150,6 +150,13 @@ panic = \"abort\"
 				      (make-instance SendComplex :timestamp (Utc--now) :ptr (fftw--array--AlignedVec--new ,n-samples))
 				      )))))
 
+		     (fftout_scaled
+		      (list ,@(loop for i below n-buf collect
+				   `(std--sync--Arc--new
+				     (std--sync--Mutex--new
+				      (Vec--with_capacity--<f32> ,n-samples)
+				      )))))
+
 		    
 		     )
 
