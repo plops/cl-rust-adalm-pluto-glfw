@@ -120,36 +120,48 @@ fn main() {
             });
         }
         {
-            scope.builder().name("fft_processor".into()).spawn(| _|{
-                                                let wg  = barrier_pipeline_setup.clone();
-                                {
-                                        println!("{} {}:{} start fftw plan ", Utc::now(), file!(), line!());
-}
-                                let mut plan: fftw::plan::C2CPlan64  = fftw::plan::C2CPlan::aligned(&[512], fftw::types::Sign::Forward, fftw::types::Flag::Measure).unwrap();
+            scope.builder().name("fft_processor".into()).spawn(|_| {
+                let wg = barrier_pipeline_setup.clone();
                 {
-                                        println!("{} {}:{} finish fftw plan ", Utc::now(), file!(), line!());
-}
-                                {
-                                        println!("{} {}:{} fft_processor waits for other pipeline threads ", Utc::now(), file!(), line!());
-}
+                    println!("{} {}:{} start fftw plan ", Utc::now(), file!(), line!());
+                }
+                let mut plan: fftw::plan::C2CPlan64 = fftw::plan::C2CPlan::aligned(
+                    &[512],
+                    fftw::types::Sign::Forward,
+                    fftw::types::Flag::Measure,
+                )
+                .unwrap();
+                {
+                    println!("{} {}:{} finish fftw plan ", Utc::now(), file!(), line!());
+                }
+                {
+                    println!(
+                        "{} {}:{} fft_processor waits for other pipeline threads ",
+                        Utc::now(),
+                        file!(),
+                        line!()
+                    );
+                }
                 wg.wait();
                 {
-                                        println!("{} {}:{} fft_processor loop starts ", Utc::now(), file!(), line!());
-}
+                    println!(
+                        "{} {}:{} fft_processor loop starts ",
+                        Utc::now(),
+                        file!(),
+                        line!()
+                    );
+                }
                 loop {
-                                                            let tup: usize  = r0.recv().ok().unwrap();
-                                        let mut ha  = fftin[tup].clone();
-                    let mut a  = &mut ha.lock().unwrap();
-                                        let mut hb  = fftout[tup].clone();
-                    let mut b  = &mut hb.lock().unwrap();
-                                        plan.c2c(&mut a.ptr, &mut b.ptr).unwrap();
-                                        b.timestamp=Utc::now();
-                    {
-                                                println!("{} {}:{} fft_processor send to fft_scaler  tup={}  (b.timestamp-a.timestamp)={}  b.ptr[0]={}", Utc::now(), file!(), line!(), tup, (b.timestamp-a.timestamp), b.ptr[0]);
-}
+                    let tup: usize = r0.recv().ok().unwrap();
+                    let mut ha = fftin[tup].clone();
+                    let mut a = &mut ha.lock().unwrap();
+                    let mut hb = fftout[tup].clone();
+                    let mut b = &mut hb.lock().unwrap();
+                    plan.c2c(&mut a.ptr, &mut b.ptr).unwrap();
+                    b.timestamp = Utc::now();
                     s1.send(tup).unwrap();
-};
-});
+                }
+            });
         }
         {
             scope.builder().name("sdr_reader".into()).spawn(|_| {
@@ -302,15 +314,6 @@ fn main() {
                             a.ptr[i] =
                                 fftw::types::c64::new((data_i[i] as f64), (data_q[i] as f64));
                         }
-                    }
-                    {
-                        println!(
-                            "{} {}:{} sdr_reader  count={}",
-                            Utc::now(),
-                            file!(),
-                            line!(),
-                            count
-                        );
                     }
                     s0.send(count).unwrap();
                     count += 1;

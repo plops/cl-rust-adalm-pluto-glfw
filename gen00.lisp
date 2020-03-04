@@ -257,7 +257,7 @@ panic = \"abort\"
 					      (c2c "&mut a.ptr" "&mut b.ptr")
 					      (unwrap))
 					 (setf b.timestamp (Utc--now)))
-					,(logprint "fft_processor send to fft_scaler" `(tup (- b.timestamp
+					#+nil ,(logprint "fft_processor send to fft_scaler" `(tup (- b.timestamp
 											       a.timestamp)
 											    (aref b.ptr 0)))
 					(dot s1
@@ -358,7 +358,7 @@ panic = \"abort\"
 													       f64)
 												       (coerce (aref data_q i)
 													       f64)))))))))
-					     ,(logprint "sdr_reader" `(count ))
+					     #+nil ,(logprint "sdr_reader" `(count ))
 					     (dot s0
 						  (send count)
 						  (unwrap))
@@ -380,28 +380,7 @@ panic = \"abort\"
 					(name (dot (string ,name) (into)))
 					(spawn (space (lambda (_)
 							(let ((wg (barrier_pipeline_setup.clone)))
-							  ,code))))
-					)
-				   #+nil
-				   (dot scope
-					(spawn (space (lambda (_)
-							(let ((wg (barrier_pipeline_setup.clone)))
-							  ,code))))
-					)))
-			       #+nil(progn
-					 (dot
-					  (crossbeam_utils--thread--scope
-					   (lambda (scope)
-					     (dot scope
-					;(builder)
-						  #+nil (name (dot (string ,name)
-								   (into)))
-						  (spawn (space move (lambda (_)
-								       ,code)))
-					;(unwrap)
-						  )))
-			    
-					  (unwrap)))))))))))
+							  ,code)))))))))))))))
 	     
 	     
 	     
