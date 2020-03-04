@@ -155,269 +155,184 @@ panic = \"abort\"
 				     (unwrap))))
 		  #+nil (for (a core_ids)
 			     ,(logprint "affinity" `(a))))
-		(let ((b (dot (std--thread--Builder--new)
-			      (name (dot (string "pluto_reader")
-					 (into)))))
-		      (reader_thread
-		       (b.spawn
-			(space
-			 move
-			 (lambda ()
-			   (do0
-			    (core_affinity--set_for_current (make-instance core_affinity--CoreId :id 0))
-			    ;; https://github.com/fpagliughi/rust-industrial-io/blob/master/examples/riio_detect.rs
-			    (let ((ctx (dot (iio--Context--create_network (string "192.168.2.1"))
-					    (unwrap_or_else (lambda (err_)
-							      ,(logprint "couldnt open iio context")
-							      (std--process--exit 1))))))
-			      (let* ((trigs (Vec--new)))
-				(for (dev (ctx.devices))
-				     (if (dev.is_trigger)
-					 (case (dev.id)
-					   ((Some id) (trigs.push id))
-					   (None "()"))
-					 (println! (string "{} [{}]: {} channels")
-						   (dot dev
-							(id)
-							(unwrap_or_default))
-						   (dot dev
-							(name)
-							(unwrap_or_default))
-						   (dot dev
-							(num_channels)))))
-			       
-				(if (trigs.is_empty)
-				    ,(logprint "no triggers" `())
-				    (for (s trigs)
-					 (println! (string "trigger {}")
-						   s))))
 
-			      (let (,@ (loop for (var name) in `((dev cf-ad9361-lpc)
-								 (phy ad9361-phy))
-					  collect
-					    `(,var (dot ctx
-							(find_device (string ,name))
-							(unwrap_or_else
-							 (lambda ()
-							   ,(logprint (format nil "no device named ~a" name) `())
-							   (std--process--exit 2))))))
-				    ) 
 
-				(let* ((nchan 0))
-				  (for ("mut chan" (dev.channels))
-				       (when (== (Some (std--any--TypeId--of--<i16>))
-						 (chan.type_of))
-					 (incf nchan)
-					 (chan.enable)))
-				  (if (== 0 nchan)
-				      (do0
-				       ,(logprint "no 16 bit channels found" `())
-				       (std--process--exit 1))
-				      ,(logprint "16 bit channels found" `(nchan))))
-				(do0
-				
-				
-				 (let* ((chans (Vec--new)))
-				   (let* ((buf (dot dev
-						    ;; cyclic buffer only makes sense for output (to repeat waveform)
-						    (create_buffer ,n-samples false)
-						    (unwrap_or_else (lambda (err)
-								      ,(logprint (format nil "can't create buffer") `(err))
-								      (std--process--exit 3))))))
-				     (do0 
-				      (for (ch (dev.channels))
-					   (chans.push ch))
-				      (dot (crossbeam_utils--thread--scope
-					    (lambda (scope)
-					      (scope.spawn (lambda (_)
-							     ,(logprint "start fftw plan" `())
-							     (let* ((plan (dot (fftw--plan--C2CPlan--aligned ,(format nil "&[~a]" n-samples)
-													     fftw--types--Sign--Forward
-													     fftw--types--Flag--Measure)
-									       (unwrap))))
-							       (declare (type fftw--plan--C2CPlan64 plan))
-							       ,(logprint "finish fftw plan" `())
-							       (let ((wg (wait_group_pipeline_setup.clone)))
-								 ,(logprint "fft_processor waits for other pipeline threads" `())
-								 (wg.wait))
-							       (loop
-								  (let ((tup (dot r0
-										  (recv)
-										  (ok)
-										  (unwrap))))
-								    (declare (type usize tup))
-								    (let* ((ha (dot (aref fftin tup) (clone)))
-									   (a (space "&mut" (dot ha
-												 (lock)
-												 (unwrap))))
-									   (hb (dot (aref fftout tup) (clone)))
-									   (b (space "&mut" (dot hb
-												 (lock)
-												 (unwrap)))))
-								      (do0
-								       (dot plan
-									    (c2c "&mut a.ptr" "&mut b.ptr")
-									    (unwrap))
-								       (setf b.timestamp (Utc--now)))
-								      ,(logprint "fft_processor" `(tup (- b.timestamp
-											     a.timestamp)
-											  (aref b.ptr 0)))
-								      (dot s1
-									   (send tup)
-									   (unwrap))))))))
-					      (let* ((count 0))
-						(let ((wg (wait_group_pipeline_setup.clone)))
-						  ,(logprint "sdr_reader waits for other pipeline threads" `())
-								 (wg.wait))
-						(loop
-						   (case (buf.refill)
-						     ((Err err)
-						      ,(logprint "error filling buffer" `(err))
-						      (std--process--exit 4))
-						     (t "()"))
-						   (progn
-						     (let ((time_acquisition (Utc--now)))
-						       (let* ((ha (dot (aref fftin count)
-								       (clone)))
-							      (a (space "&mut" (dot ha
-										    (lock)
-										    (unwrap)))))
-							 (let ((data_i (dot buf
-									    (channel_iter--<i16> (ref (aref chans 0)))
-									    (collect)))
-							       (data_q (dot buf
-									    (channel_iter--<i16> (ref (aref chans 1)))
-									    (collect))))
-							   (declare (type Vec<i16> data_i data_q))
-							   (do0
-							    (setf a.timestamp time_acquisition)
-							    (for (i (slice 0 ,n-samples))
-								 (setf (aref a.ptr i) (fftw--types--c64--new (coerce (aref data_i i)
-														     f64)
-													     (coerce (aref data_q i)
-														     f64)))))))))
-						   ,(logprint "sdr_reader" `(count ))
-						   (dot s0
-							(send count)
-							(unwrap))
-						   (incf count)
-						   (when (<= ,n-buf count)
-						     (setf count 0))))))
-					   (unwrap))
-				      (dot (crossbeam_utils--thread--scope
-					    (lambda (scope)
-					      (dot scope
-						   (builder)
-						   (name (dot (string "fft_scaler")
-							      (into)))
-						   (spawn (lambda (_)
-							    (let ((wg (wait_group_pipeline_setup.clone)))
-							      ,(logprint "fft_scaler waits for other pipeline threads" `())
-								 (wg.wait))
-							    (loop
-							       (let ((tup (dot r1
-									       (recv)
-									       (ok)
-									       (unwrap))))
-								 (declare (type usize tup))
-								 (let* (
-									(hb (dot (aref fftout tup)
-										 (clone)))
-									(b (space "&mut" (dot hb
-											      (lock)
-											      (unwrap)))))
-								   ,(logprint "fft_scaler" `(tup b.timestamp))
-								   (dot s1
-									(send tup)
-									(unwrap)))))))
+		,(let ((l `((fft_scaler
+			     (do0
+			      (let ((wg (wait_group_pipeline_setup.clone)))
+				,(logprint "fft_scaler waits for other pipeline threads" `())
+				(wg.wait))
+			      (loop
+				 (let ((tup (dot r1
+						 (recv)
+						 (ok)
+						 (unwrap))))
+				   (declare (type usize tup))
+				   (let* (
+					  (hb (dot (aref fftout tup)
+						   (clone)))
+					  (b (space "&mut" (dot hb
+								(lock)
+								(unwrap)))))
+				     ,(logprint "fft_scaler" `(tup b.timestamp))
+				     (dot s1
+					  (send tup)
+					  (unwrap)))))))
+			    (sdr_reader
+			     (do0
+			      (core_affinity--set_for_current (make-instance core_affinity--CoreId :id 0))
+			      ;; https://github.com/fpagliughi/rust-industrial-io/blob/master/examples/riio_detect.rs
+			      (let ((ctx (dot (iio--Context--create_network (string "192.168.2.1"))
+					      (unwrap_or_else (lambda (err_)
+								,(logprint "couldnt open iio context")
+								(std--process--exit 1))))))
+				(let* ((trigs (Vec--new)))
+				  (for (dev (ctx.devices))
+				       (if (dev.is_trigger)
+					   (case (dev.id)
+					     ((Some id) (trigs.push id))
+					     (None "()"))
+					   (println! (string "{} [{}]: {} channels")
+						     (dot dev
+							  (id)
+							  (unwrap_or_default))
+						     (dot dev
+							  (name)
+							  (unwrap_or_default))
+						     (dot dev
+							  (num_channels)))))
+				  
+				  (if (trigs.is_empty)
+				      ,(logprint "no triggers" `())
+				      (for (s trigs)
+					   (println! (string "trigger {}")
+						     s))))
+				(let (,@ (loop for (var name) in `((dev cf-ad9361-lpc)
+								   (phy ad9361-phy))
+					    collect
+					      `(,var (dot ctx
+							  (find_device (string ,name))
+							  (unwrap_or_else
+							   (lambda ()
+							     ,(logprint (format nil "no device named ~a" name) `())
+							     (std--process--exit 2))))))) 
+				  (let* ((nchan 0))
+				    (for ("mut chan" (dev.channels))
+					 (when (== (Some (std--any--TypeId--of--<i16>))
+						   (chan.type_of))
+					   (incf nchan)
+					   (chan.enable)))
+				    (if (== 0 nchan)
+					(do0
+					 ,(logprint "no 16 bit channels found" `())
+					 (std--process--exit 1))
+					,(logprint "16 bit channels found" `(nchan))))
+				  (do0
+				   (let* ((chans (Vec--new)))
+				     (let* ((buf (dot dev
+						      ;; cyclic buffer only makes sense for output (to repeat waveform)
+						      (create_buffer ,n-samples false)
+						      (unwrap_or_else (lambda (err)
+									,(logprint (format nil "can't create buffer") `(err))
+									(std--process--exit 3))))))
+				       (do0 
+					(for (ch (dev.channels))
+					     (chans.push ch))
+					(let* ((count 0))
+					  (let ((wg (wait_group_pipeline_setup.clone)))
+					   ,(logprint "sdr_reader waits for other pipeline threads" `())
+					   (wg.wait))
+					  (loop
+					     (case (buf.refill)
+					       ((Err err)
+						,(logprint "error filling buffer" `(err))
+						(std--process--exit 4))
+					       (t "()"))
+					     (progn
+					       (let ((time_acquisition (Utc--now)))
+						 (let* ((ha (dot (aref fftin count)
+								 (clone)))
+							(a (space "&mut" (dot ha
+									      (lock)
+									      (unwrap)))))
+						   (let ((data_i (dot buf
+								      (channel_iter--<i16> (ref (aref chans 0)))
+								      (collect)))
+							 (data_q (dot buf
+								      (channel_iter--<i16> (ref (aref chans 1)))
+								      (collect))))
+						     (declare (type Vec<i16> data_i data_q))
+						     (do0
+						      (setf a.timestamp time_acquisition)
+						      (for (i (slice 0 ,n-samples))
+							   (setf (aref a.ptr i) (fftw--types--c64--new (coerce (aref data_i i)
+													       f64)
+												       (coerce (aref data_q i)
+													       f64)))))))))
+					     ,(logprint "sdr_reader" `(count ))
+					     (dot s0
+						  (send count)
+						  (unwrap))
+					     (incf count)
+					     (when (<= ,n-buf count)
+					       (setf count 0))))))))))))
+			    (fft_processor
+			     (do0
+			      ,(logprint "start fftw plan" `())
+			      (let* ((plan (dot (fftw--plan--C2CPlan--aligned ,(format nil "&[~a]" n-samples)
+									      fftw--types--Sign--Forward
+									      fftw--types--Flag--Measure)
+						(unwrap))))
+				(declare (type fftw--plan--C2CPlan64 plan))
+				,(logprint "finish fftw plan" `())
+				(let ((wg (wait_group_pipeline_setup.clone)))
+				 ,(logprint "fft_processor waits for other pipeline threads" `())
+				 (wg.wait))
+				(loop
+				   (let ((tup (dot r0
+						   (recv)
+						   (ok)
 						   (unwrap))))
-					   (unwrap))
-
-				      (dot (crossbeam_utils--thread--scope
-					    (lambda (scope)
-					      (dot scope
-						   (builder)
-						   (name (dot (string "fftw_processor")
-							      (into)))
-						   (spawn (lambda (_)
-							       ,(logprint "start fftw plan" `())
-							       (let* ((plan (dot (fftw--plan--C2CPlan--aligned ,(format nil "&[~a]" n-samples)
-													       fftw--types--Sign--Forward
-													       fftw--types--Flag--Measure)
-										 (unwrap))))
-								 (declare (type fftw--plan--C2CPlan64 plan))
-								 ,(logprint "finish fftw plan" `())
-								 (loop
-								    (let ((tup (dot r0
-										    (recv)
-										    (ok)
-										    (unwrap))))
-								      (declare (type usize tup))
-								      (let* (
-									     (ha (dot (aref fftin tup)
-										      (clone)
-										      ))
-									     (a (space "&mut" (dot ha
-												   (lock)
-												   (unwrap)
-												   )))
-									   
-									     (hb (dot (aref fftout tup)
-										      (clone)))
-									     (b (space "&mut" (dot hb
-												   (lock)
-												   (unwrap)))))
-									(do0
-									 (dot plan
-									      (c2c "&mut a.ptr" "&mut b.ptr")
-									      (unwrap))
-									 (setf b.timestamp (Utc--now)))
-									,(logprint "" `(tup (- b.timestamp
-											       a.timestamp)
-											    (aref b.ptr 0)))
-									(dot s1
-									     (send tup)
-									     (unwrap))))))))
-						   (unwrap))
-					      (let* ((count 0))
-						(loop
-						   (case (buf.refill)
-						     ((Err err)
-						      ,(logprint "error filling buffer" `(err))
-						      (std--process--exit 4))
-						     (t "()"))
-						   (progn
-						     (let ((time_acquisition (Utc--now)))
-						       (let* ((ha (dot (aref fftin count)
-								       (clone)))
-							      (a (space "&mut" (dot ha
-										    (lock)
-										    (unwrap)))))
-							 (let ((data_i (dot buf
-									    (channel_iter--<i16> (ref (aref chans 0)))
-									    (collect)))
-							       (data_q (dot buf
-									    (channel_iter--<i16> (ref (aref chans 1)))
-									    (collect))))
-							   (declare (type Vec<i16> data_i data_q))
-							   (do0
-							    (setf a.timestamp time_acquisition)
-							    (for (i (slice 0 ,n-samples))
-								 (setf (aref a.ptr i) (fftw--types--c64--new (coerce (aref data_i i)
-														     f64)
-													     (coerce (aref data_q i)
-														     f64)))))))))
-						   ,(logprint "sender" `(count ))
-						   (dot s0
-							(send count)
-							(unwrap))
-						   (incf count)
-						   (when (<= ,n-buf count)
-						     (setf count 0))))))
-					   (unwrap))
-
-
-				      )))))))))))))))
+				     (declare (type usize tup))
+				     (let* ((ha (dot (aref fftin tup)
+						     (clone)))
+					    (a (space "&mut" (dot ha
+								  (lock)
+								  (unwrap)
+								  )))
+					    
+					    (hb (dot (aref fftout tup)
+						     (clone)))
+					    (b (space "&mut" (dot hb
+								  (lock)
+								  (unwrap)))))
+				       (do0
+					(dot plan
+					     (c2c "&mut a.ptr" "&mut b.ptr")
+					     (unwrap))
+					(setf b.timestamp (Utc--now)))
+				       ,(logprint "" `(tup (- b.timestamp
+							      a.timestamp)
+							   (aref b.ptr 0)))
+				       (dot s1
+					    (send tup)
+					    (unwrap)))))))))))
+		 `(do0
+		   ,@(loop for (name code) in l collect
+			  `(progn
+			     (dot
+			     (crossbeam_utils--thread--scope
+			      (lambda (scope)
+				(dot scope
+					;(builder)
+				     #+nil (name (dot (string ,name)
+						      (into)))
+				     (spawn (space move (lambda (_)
+							  ,code)))
+					;(unwrap)
+				     )))
+			    
+			     (unwrap))))))))
 	     
 	     
 	     
@@ -611,5 +526,7 @@ panic = \"abort\"
 								       *source-dir*))
 		       `(do0
 			 "#[allow(unused_parens)]"
+			 "#[allow(unused_imports)]"
+			 "#[allow(unused_mut)]"
 			 (use (chrono (curly DateTime Utc)))
 			 ,code)))))
