@@ -152,6 +152,8 @@ panic = \"abort\"
 		    (for (a core_ids)
 			 ,(logprint "affinity" `(a))))
 		  "// start all the threads in a crossbeam scope, so that they can access the pipeline storage without Rust making it too difficult"
+		  "// before the pipeline starts working all threads wait at a barrier until the fftw thread has been initialized"
+		  "// when the gui is exited (by pressing esc key in the window) all threads are notified to quit by the atomic variable keep_running"
 		  ,(let ((l `((gui
 			       (let* (
 				      (glfw (dot (glfw--init glfw--FAIL_ON_ERRORS)
