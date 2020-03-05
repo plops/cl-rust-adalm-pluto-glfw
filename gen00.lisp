@@ -13,7 +13,7 @@
        (println! (string ,(format nil "{} {}:{} ~a ~{~a~^ ~}"
 				  msg
 				  (loop for e in rest collect
-				       (format nil " ~a={}" (emit-rs :code e)))))
+				       (format nil " ~a={:?}" (emit-rs :code e)))))
 
 		 (Utc--now)
 		 (file!)
@@ -86,90 +86,51 @@ panic = \"abort\"
 	   
 	   "extern crate imgui_glfw_rs;"
 	   "extern crate chrono;"
-
-
+	   
 	   "extern crate core_affinity;"
 	   "extern crate industrial_io as iio;"
 	   "extern crate crossbeam_channel;"
 	   "extern crate fftw;"
-	   
-
-
 	   (use (imgui_glfw_rs glfw (curly Action Context Key))
 		;(imgui_glfw_rs imgui)
 		(imgui_glfw_rs ImguiGLFW)
 		(std os raw c_void)
-		(std ffi CString)
-		
-					
-		)
-
+		(std ffi CString))
 	   (use (std thread spawn)
 		(std sync (curly Arc Mutex))
 		(std io)
 		(crossbeam_channel bounded))
-	   
-	   
-	   
-	   (use 
-		(fftw plan C2CPlan)
-		)
-
+	   (use (fftw plan C2CPlan))
 	   (do0
 	    (space pub
 	     (defstruct0 SendComplex
 		 ("pub timestamp" "DateTime<Utc>")
-				   
 	       ("pub ptr"
-		"fftw::array::AlignedVec<num_complex::Complex<f64>>"
-					;"*mut num_complex::Complex<f64>"
-		)))
-				
+		"fftw::array::AlignedVec<num_complex::Complex<f64>>")))
 	    "unsafe impl Send for SendComplex {}")
-
-
-
-	   
-	       
 	   (defun main ()
 	     (let (((values s0 r0) (crossbeam_channel--bounded ,n-buf)) ;; sdr_receiver -> fft_processor
 					;(wait_group_pipeline_setup (crossbeam_utils--sync--WaitGroup--new))
 		   (barrier_pipeline_setup (std--sync--Arc--new (std--sync--Barrier--new ,n-threads)))
 		   ((values s1 r1) (crossbeam_channel--bounded ,n-buf)) ;; fft_processor -> fft_scaler
 		   #+nil ((values s2 r2) (crossbeam_channel--bounded ,n-buf))) ;; fft_scaler -> opengl
-	       (let* (
-		      (fftin
-
+	       (let* ((fftin
 		       (list ,@(loop for i below n-buf collect
 				    `(std--sync--Arc--new
 				      (std--sync--Mutex--new
-				       (make-instance SendComplex :timestamp (Utc--now) :ptr (fftw--array--AlignedVec--new ,n-samples))
-				       )))))
+				       (make-instance SendComplex :timestamp (Utc--now) :ptr (fftw--array--AlignedVec--new ,n-samples)))))))
 		      (fftout
 		       (list ,@(loop for i below n-buf collect
 				    `(std--sync--Arc--new
 				      (std--sync--Mutex--new
-				       (make-instance SendComplex :timestamp (Utc--now) :ptr (fftw--array--AlignedVec--new ,n-samples))
-				       )))))
-
-		      
+				       (make-instance SendComplex :timestamp (Utc--now) :ptr (fftw--array--AlignedVec--new ,n-samples)))))))
 		      (fftout_scaled
 		       (list ,@(loop for i below n-buf-out collect
-				    `(std--sync--Arc--new (std--sync--Mutex--new
-							   ,(format nil "[0.0;~a]" n-samples)
-							   #+nil
-							   (Vec--with_capacity ,n-samples))))))
-
-		      
-		      )
-					;(declare (type ,(format nil "[Arc<Mutex<Vec<f32>>>;~a]" n-buf-out) fftout_scaled))
-
+				    `(std--sync--Arc--new (std--sync--Mutex--new  ,(format nil "[0.0;~a]" n-samples)))))))
 		 (let ((core_ids (dot (core_affinity--get_core_ids)
 				      (unwrap))))
-		   #+nil (for (a core_ids)
+		   (for (a core_ids)
 			      ,(logprint "affinity" `(a))))
-
-
 		 ,(let ((l `((gui
 			      (let* ((glfw (dot (glfw--init glfw--FAIL_ON_ERRORS)
 						(unwrap))))
@@ -228,33 +189,19 @@ panic = \"abort\"
 								gl--UNSIGNED_BYTE
 								(coerce (coerce (ref (aref data 0))
 										"*const u8")
-									"*const c_void"))))
-					     )))
-
-
+									"*const c_void")))))))
 				  
 				  (let* ((imgui (imgui--Context--create))
 					 (imgui_glfw (imgui_glfw_rs--ImguiGLFW--new
 						      "&mut imgui"
 						      "&mut window")))
 				    (imgui.set_ini_filename None)
-				    #+nil (let ((renderer (imgui_opengl_renderer--Renderer--new
-							   "&mut imgui"
-							   (lambda (symbol)
-							     (return (dot  window
-									   (get_proc_address symbol))
-								     )
-							     
-							     )))))
 				    (while (not (window.should_close))
 				      (space unsafe
 					     (progn
 					       (gl--Clear
 						(logior gl--COLOR_BUFFER_BIT
 							gl--DEPTH_BUFFER_BIT))))
-				      #+nil(let ((ui (imgui.frame)))
-					     (ui.show_demo_window "&mut true")
-					     (renderer.render ui))
 				      (progn
 					(let ((ui (imgui_glfw.frame "&mut window"
 								    "&mut imgui")))
@@ -266,18 +213,13 @@ panic = \"abort\"
 											,(* 1s0 tex-height)))
 							     (build))
 							(ui.text (string "bla3")))))
-					;(ui.text (string "bla"))
-					  
 					  (ui.show_demo_window "&mut true")
 					  (imgui_glfw.draw ui "&mut window")))
-				      
 				      (window.swap_buffers)
 				      (glfw.poll_events)
 				      (for ((values _ event)
 					    (glfw--flush_messages &events))
 					;,(logprint "event" `(event))
-					   #+nil (println! (string "{:?}")
-							   event)
 					   (imgui_glfw.handle_event
 					    "&mut imgui"
 					    &event)
@@ -289,8 +231,6 @@ panic = \"abort\"
 					       _)
 					      (window.set_should_close true))
 					     (t "{}"))))))))
-
-
 			     (fft_scaler
 			      (do0
 			       (do0 ;let ((wg (wait_group_pipeline_setup.clone)))
@@ -484,7 +424,6 @@ panic = \"abort\"
 		    `(do0
 		      (dot
 		       (crossbeam_utils--thread--scope
-			
 			(lambda (scope)
 			  ,@(loop for (name code) in l collect
 				 `(progn
@@ -494,13 +433,7 @@ panic = \"abort\"
 					  (name (dot (string ,name) (into)))
 					  (spawn (space (lambda (_)
 							  (let ((wg (barrier_pipeline_setup.clone)))
-							    ,code)))))))))))))))
-	     
-	     
-	     
-	     
-	     
-	     )))))
+							    ,code))))))))))))))))))))
 
 
   (loop for e in (reverse *module*) and i from 0 do

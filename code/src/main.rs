@@ -80,6 +80,11 @@ fn main() {
         std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
     ];
     let core_ids = core_affinity::get_core_ids().unwrap();
+    for a in core_ids {
+        {
+            println!("{} {}:{} affinity  a={:?}", Utc::now(), file!(), line!(), a);
+        }
+    }
     crossbeam_utils::thread::scope(|scope| {
         {
             scope.builder().name("gui".into()).spawn(|_| {
@@ -328,7 +333,7 @@ fn main() {
                 } else {
                     {
                         println!(
-                            "{} {}:{} 16 bit channels found  nchan={}",
+                            "{} {}:{} 16 bit channels found  nchan={:?}",
                             Utc::now(),
                             file!(),
                             line!(),
@@ -340,7 +345,7 @@ fn main() {
                 let mut buf = dev.create_buffer(512, false).unwrap_or_else(|err| {
                     {
                         println!(
-                            "{} {}:{} can't create buffer  err={}",
+                            "{} {}:{} can't create buffer  err={:?}",
                             Utc::now(),
                             file!(),
                             line!(),
@@ -375,7 +380,7 @@ fn main() {
                         Err(err) => {
                             {
                                 println!(
-                                    "{} {}:{} error filling buffer  err={}",
+                                    "{} {}:{} error filling buffer  err={:?}",
                                     Utc::now(),
                                     file!(),
                                     line!(),
