@@ -196,6 +196,7 @@ panic = \"abort\"
 
 					      (do0
 					       ;; https://github.com/bwasty/learn-opengl-rs/blob/master/src/_1_getting_started/_4_1_textures.rs
+					       "// when the gui starts a test pattern is loaded into the texture"
 					       (let* ((texture 0))
 						 (gl--GenTextures 1 "&mut texture")
 						 (setf texture_id (imgui--TextureId--from (coerce texture usize)))
@@ -230,6 +231,8 @@ panic = \"abort\"
 					 (declare (type "Vec<_>" v))
 					 ,(logprint "gui" `((v.len) ;v
 							    ))
+					 "// each response received on r2 is a line that will be written into the texture"
+					 ,(format nil "// v.len() should never become ~a this would mean that the s2 channel is full and back pressure would lead to dropped lines. if v.len()" n-buf-out)
 					 (for (c v)
 					      (let ((cc c)
 						    (hb (dot (aref fftout_scaled cc)
@@ -346,7 +349,7 @@ panic = \"abort\"
 										       (dot (aref b.ptr i) im)))
 										 (ln))
 									    f32)))))
-					    (for (i (slice 0 ,(/ n-samples 2)))
+					    #+nil (for (i (slice 0 ,(/ n-samples 2)))
 						 (let ((j (+ i ,(+ 1 (/ n-samples 2)))))
 						  (setf (aref c i) (* scale
 								      (+ offset (coerce (dot (+ (* (dot (aref b.ptr j) re)

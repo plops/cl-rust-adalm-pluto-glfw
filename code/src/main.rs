@@ -146,6 +146,7 @@ fn main() {
                 gl::Enable(gl::DEPTH_TEST);
                 gl::DepthFunc(gl::LESS);
                 gl::ClearColor(0.10, 0.10, 0.10, 1.0);
+                // when the gui starts a test pattern is loaded into the texture
                 let mut texture = 0;
                 gl::GenTextures(1, &mut texture);
                 texture_id = imgui::TextureId::from((texture as usize));
@@ -181,6 +182,8 @@ fn main() {
                         v.len()
                     );
                 }
+                // each response received on r2 is a line that will be written into the texture
+                // v.len() should never become 30 this would mean that the s2 channel is full and back pressure would lead to dropped lines. if v.len()
                 for c in v {
                     let cc: usize = c;
                     let hb = fftout_scaled[cc].clone();
@@ -272,13 +275,6 @@ fn main() {
                     c[(i + 256)] = ((scale)
                         * (offset
                             + ((((b.ptr[i].re) * (b.ptr[i].re)) + ((b.ptr[i].im) * (b.ptr[i].im)))
-                                .ln() as f32)));
-                }
-                for i in 0..256 {
-                    let j = (i + 257);
-                    c[i] = ((scale)
-                        * (offset
-                            + ((((b.ptr[j].re) * (b.ptr[j].re)) + ((b.ptr[j].im) * (b.ptr[j].im)))
                                 .ln() as f32)));
                 }
                 s2.send(count).unwrap();
