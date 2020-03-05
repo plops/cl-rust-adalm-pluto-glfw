@@ -112,6 +112,13 @@ panic = \"abort\"
 	    "unsafe impl Send for SendComplex {}")
 	   (defun main ()
 	     (let* ((keep_running (std--sync--atomic--AtomicBool--new true)))
+	       "// dataprocessing pipeline:"
+	       "// each stage runs in a thread, they communicated via channels"
+	       "// s0,r0 sdr_receiver -> fft_processor"
+	       "// s1,r1 are for fft_processor -> fft_scaler"
+	       "// s2,r2 fft_scaler -> opengl"
+	       "// s0 and s2 are bounded to 3 or 4, the processing seems to be fast enough to ever create back pressure (and loose sdr_receiver chunks)"
+	       "// size of bounded s2 channel has to be large enough to store chunks that are acquired while waiting for next vsync"
 	      (let (((values s0 r0) (crossbeam_channel--bounded ,n-buf)) ;; sdr_receiver -> fft_processor
 					;(wait_group_pipeline_setup (crossbeam_utils--sync--WaitGroup--new))
 		    (barrier_pipeline_setup (std--sync--Arc--new (std--sync--Barrier--new ,n-threads)))
