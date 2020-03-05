@@ -75,8 +75,8 @@ panic = \"abort\"
 	 
 	(n-threads 3)
 	 (n-buf (+ n-threads 1))
-	 (n-buf-out 30)
-	 (n-samples 512)
+	 (n-buf-out 40)
+	 (n-samples 256)
 	 (tex-height 512)
 	 (tex-width n-samples))
     (define-module
@@ -337,22 +337,22 @@ panic = \"abort\"
 								 (unwrap)))))
 					;,(logprint "fft_scaler" `(tup b.timestamp))
 
-					  (let ((scale 9e-2)
-						(offset -8s0))
+					  (let ((scale (/ 110s0 (coerce ,n-samples f32)))
+						(offset -.4s0))
 					    "// convert complex fft results to log of magnitude, apply scale and offset and preform fftshift"
 					    (for (i (slice 0 ,(/ n-samples 2)))
 						 (setf (aref c (+ i ,(- (/ n-samples 2) 1)))
-						       (* scale
-							  (+ offset (coerce (dot (+ (* (dot (aref b.ptr i) re)
-										       (dot (aref b.ptr i) re))
-										    (* (dot (aref b.ptr i) im)
-										       (dot (aref b.ptr i) im)))
-										 (ln))
-									    f32)))))
+						       (+ offset
+							  (* scale (coerce (dot (+ (* (dot (aref b.ptr i) re)
+											  (dot (aref b.ptr i) re))
+										       (* (dot (aref b.ptr i) im)
+											  (dot (aref b.ptr i) im)))
+										    (ln))
+									       f32)))))
 					    (for (i (slice 0 ,(/ n-samples 2)))
 						 (let ((j (+ i ,(/ n-samples 2))))
-						  (setf (aref c i) (* scale
-								      (+ offset (coerce (dot (+ (* (dot (aref b.ptr j) re)
+						  (setf (aref c i) (+ offset
+								      (* scale (coerce (dot (+ (* (dot (aref b.ptr j) re)
 												   (dot (aref b.ptr j) re))
 												(* (dot (aref b.ptr j) im)
 												   (dot (aref b.ptr j) im)))

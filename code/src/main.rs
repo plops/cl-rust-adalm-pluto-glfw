@@ -39,7 +39,7 @@ fn main() {
     let (s0, r0) = crossbeam_channel::bounded(4);
     let barrier_pipeline_setup = std::sync::Arc::new(std::sync::Barrier::new(3));
     let (s1, r1) = crossbeam_channel::bounded(4);
-    let (s2, r2) = crossbeam_channel::bounded(30);
+    let (s2, r2) = crossbeam_channel::bounded(40);
     // pipeline storage:
     // fftin is filled by sdr_receiver thread and consumed by fft_processor thread
     // fftout is filled by fft_processor and consumed by fft_scaler
@@ -47,70 +47,80 @@ fn main() {
     let mut fftin = [
         std::sync::Arc::new(std::sync::Mutex::new(SendComplex {
             timestamp: Utc::now(),
-            ptr: fftw::array::AlignedVec::new(512),
+            ptr: fftw::array::AlignedVec::new(256),
         })),
         std::sync::Arc::new(std::sync::Mutex::new(SendComplex {
             timestamp: Utc::now(),
-            ptr: fftw::array::AlignedVec::new(512),
+            ptr: fftw::array::AlignedVec::new(256),
         })),
         std::sync::Arc::new(std::sync::Mutex::new(SendComplex {
             timestamp: Utc::now(),
-            ptr: fftw::array::AlignedVec::new(512),
+            ptr: fftw::array::AlignedVec::new(256),
         })),
         std::sync::Arc::new(std::sync::Mutex::new(SendComplex {
             timestamp: Utc::now(),
-            ptr: fftw::array::AlignedVec::new(512),
+            ptr: fftw::array::AlignedVec::new(256),
         })),
     ];
     let mut fftout = [
         std::sync::Arc::new(std::sync::Mutex::new(SendComplex {
             timestamp: Utc::now(),
-            ptr: fftw::array::AlignedVec::new(512),
+            ptr: fftw::array::AlignedVec::new(256),
         })),
         std::sync::Arc::new(std::sync::Mutex::new(SendComplex {
             timestamp: Utc::now(),
-            ptr: fftw::array::AlignedVec::new(512),
+            ptr: fftw::array::AlignedVec::new(256),
         })),
         std::sync::Arc::new(std::sync::Mutex::new(SendComplex {
             timestamp: Utc::now(),
-            ptr: fftw::array::AlignedVec::new(512),
+            ptr: fftw::array::AlignedVec::new(256),
         })),
         std::sync::Arc::new(std::sync::Mutex::new(SendComplex {
             timestamp: Utc::now(),
-            ptr: fftw::array::AlignedVec::new(512),
+            ptr: fftw::array::AlignedVec::new(256),
         })),
     ];
-    let mut fftout_scaled: [Arc<Mutex<[f32; 512]>>; 30] = [
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
+    let mut fftout_scaled: [Arc<Mutex<[f32; 256]>>; 40] = [
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
     ];
     // start all the threads in a crossbeam scope, so that they can access the pipeline storage without Rust making it too difficult
     // before the pipeline starts working all threads wait at a barrier until the fftw thread has been initialized
@@ -131,9 +141,9 @@ fn main() {
             gl::load_with(|symbol| {
                 return window.get_proc_address(symbol);
             });
-            let mut data = Vec::with_capacity(((512) * (512)));
+            let mut data = Vec::with_capacity(((256) * (512)));
             let mut texture_id;
-            for i in 0..512 {
+            for i in 0..256 {
                 for j in 0..512 {
                     data.push((j as u8));
                     data.push((i as u8));
@@ -159,7 +169,7 @@ fn main() {
                     gl::TEXTURE_2D,
                     0,
                     (gl::RGB as i32),
-                    (512 as i32),
+                    (256 as i32),
                     (512 as i32),
                     0,
                     gl::RGB,
@@ -183,7 +193,7 @@ fn main() {
                     );
                 }
                 // each response received on r2 is a line that will be written into the texture
-                // v.len() should never become 30 this would mean that the s2 channel is full and back pressure would lead to dropped lines. if v.len()
+                // v.len() should never become 40 this would mean that the s2 channel is full and back pressure would lead to dropped lines. if v.len()
                 for c in v {
                     let cc: usize = c;
                     let hb = fftout_scaled[cc].clone();
@@ -194,7 +204,7 @@ fn main() {
                             0,
                             0,
                             line_yoffset,
-                            512,
+                            256,
                             1,
                             gl::RED,
                             gl::FLOAT,
@@ -214,7 +224,7 @@ fn main() {
                     ui.show_metrics_window(&mut true);
                     imgui::Window::new(&ui, im_str!("hello")).build(|| {
                         ui.text("bla2");
-                        ui.image(texture_id, [512., 512.]).build();
+                        ui.image(texture_id, [256., 512.]).build();
                         ui.text("bla3");
                     });
                     ui.show_demo_window(&mut true);
@@ -268,25 +278,25 @@ fn main() {
                 let mut c = &mut hc.lock().unwrap();
                 let hb = fftout[tup].clone();
                 let b = &hb.lock().unwrap();
-                let scale = 9.00e-2;
-                let offset = (-8.0);
+                let scale = ((1.10e+2) / (256 as f32));
+                let offset = (-0.40);
                 // convert complex fft results to log of magnitude, apply scale and offset and preform fftshift
-                for i in 0..256 {
-                    c[(i + 255)] = ((scale)
-                        * (offset
-                            + ((((b.ptr[i].re) * (b.ptr[i].re)) + ((b.ptr[i].im) * (b.ptr[i].im)))
+                for i in 0..128 {
+                    c[(i + 127)] = (offset
+                        + ((scale)
+                            * ((((b.ptr[i].re) * (b.ptr[i].re)) + ((b.ptr[i].im) * (b.ptr[i].im)))
                                 .ln() as f32)));
                 }
-                for i in 0..256 {
-                    let j = (i + 256);
-                    c[i] = ((scale)
-                        * (offset
-                            + ((((b.ptr[j].re) * (b.ptr[j].re)) + ((b.ptr[j].im) * (b.ptr[j].im)))
+                for i in 0..128 {
+                    let j = (i + 128);
+                    c[i] = (offset
+                        + ((scale)
+                            * ((((b.ptr[j].re) * (b.ptr[j].re)) + ((b.ptr[j].im) * (b.ptr[j].im)))
                                 .ln() as f32)));
                 }
                 s2.send(count).unwrap();
                 count += 1;
-                if (30) <= (count) {
+                if (40) <= (count) {
                     count = 0;
                 };
             }
@@ -297,7 +307,7 @@ fn main() {
                 println!("{} {}:{} start fftw plan ", Utc::now(), file!(), line!());
             }
             let mut plan: fftw::plan::C2CPlan64 = fftw::plan::C2CPlan::aligned(
-                &[512],
+                &[256],
                 fftw::types::Sign::Forward,
                 fftw::types::Flag::Measure,
             )
@@ -427,7 +437,7 @@ fn main() {
                 }
             };
             let mut chans = Vec::new();
-            let mut buf = dev.create_buffer(512, false).unwrap_or_else(|err| {
+            let mut buf = dev.create_buffer(256, false).unwrap_or_else(|err| {
                 {
                     println!(
                         "{} {}:{} can't create buffer  err={:?}",
@@ -483,7 +493,7 @@ fn main() {
                     let data_i: Vec<i16> = buf.channel_iter::<i16>(&(chans[0])).collect();
                     let data_q: Vec<i16> = buf.channel_iter::<i16>(&(chans[1])).collect();
                     a.timestamp = time_acquisition;
-                    for i in 0..512 {
+                    for i in 0..256 {
                         a.ptr[i] = fftw::types::c64::new((data_i[i] as f64), (data_q[i] as f64));
                     }
                 }
