@@ -34,70 +34,70 @@ fn main() {
     let mut fftin = [
         std::sync::Arc::new(std::sync::Mutex::new(SendComplex {
             timestamp: Utc::now(),
-            ptr: fftw::array::AlignedVec::new(512),
+            ptr: fftw::array::AlignedVec::new(1024),
         })),
         std::sync::Arc::new(std::sync::Mutex::new(SendComplex {
             timestamp: Utc::now(),
-            ptr: fftw::array::AlignedVec::new(512),
+            ptr: fftw::array::AlignedVec::new(1024),
         })),
         std::sync::Arc::new(std::sync::Mutex::new(SendComplex {
             timestamp: Utc::now(),
-            ptr: fftw::array::AlignedVec::new(512),
+            ptr: fftw::array::AlignedVec::new(1024),
         })),
         std::sync::Arc::new(std::sync::Mutex::new(SendComplex {
             timestamp: Utc::now(),
-            ptr: fftw::array::AlignedVec::new(512),
+            ptr: fftw::array::AlignedVec::new(1024),
         })),
     ];
     let mut fftout = [
         std::sync::Arc::new(std::sync::Mutex::new(SendComplex {
             timestamp: Utc::now(),
-            ptr: fftw::array::AlignedVec::new(512),
+            ptr: fftw::array::AlignedVec::new(1024),
         })),
         std::sync::Arc::new(std::sync::Mutex::new(SendComplex {
             timestamp: Utc::now(),
-            ptr: fftw::array::AlignedVec::new(512),
+            ptr: fftw::array::AlignedVec::new(1024),
         })),
         std::sync::Arc::new(std::sync::Mutex::new(SendComplex {
             timestamp: Utc::now(),
-            ptr: fftw::array::AlignedVec::new(512),
+            ptr: fftw::array::AlignedVec::new(1024),
         })),
         std::sync::Arc::new(std::sync::Mutex::new(SendComplex {
             timestamp: Utc::now(),
-            ptr: fftw::array::AlignedVec::new(512),
+            ptr: fftw::array::AlignedVec::new(1024),
         })),
     ];
-    let mut fftout_scaled: [Arc<Mutex<[f32; 512]>>; 30] = [
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
-        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
+    let mut fftout_scaled: [Arc<Mutex<[f32; 1024]>>; 30] = [
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 1024])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 1024])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 1024])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 1024])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 1024])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 1024])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 1024])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 1024])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 1024])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 1024])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 1024])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 1024])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 1024])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 1024])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 1024])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 1024])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 1024])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 1024])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 1024])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 1024])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 1024])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 1024])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 1024])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 1024])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 1024])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 1024])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 1024])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 1024])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 1024])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 1024])),
     ];
     let core_ids = core_affinity::get_core_ids().unwrap();
     for a in core_ids {
@@ -121,10 +121,10 @@ fn main() {
             gl::load_with(|symbol| {
                 return window.get_proc_address(symbol);
             });
-            let mut data = Vec::with_capacity(((512) * (128)));
+            let mut data = Vec::with_capacity(((1024) * (1024)));
             let mut texture_id;
-            for i in 0..512 {
-                for j in 0..128 {
+            for i in 0..1024 {
+                for j in 0..1024 {
                     data.push((j as u8));
                     data.push((i as u8));
                     data.push(((j + i) as u8));
@@ -148,8 +148,8 @@ fn main() {
                     gl::TEXTURE_2D,
                     0,
                     (gl::RGB as i32),
-                    (512 as i32),
-                    (128 as i32),
+                    (1024 as i32),
+                    (1024 as i32),
                     0,
                     gl::RGB,
                     gl::UNSIGNED_BYTE,
@@ -162,6 +162,15 @@ fn main() {
             imgui.set_ini_filename(None);
             while (!(window.should_close())) {
                 let v: Vec<_> = r2.try_iter().collect();
+                {
+                    println!(
+                        "{} {}:{} gui  v.len()={:?}",
+                        Utc::now(),
+                        file!(),
+                        line!(),
+                        v.len()
+                    );
+                }
                 for c in v {
                     let cc: usize = c;
                     let hb = fftout_scaled[cc].clone();
@@ -172,7 +181,7 @@ fn main() {
                             0,
                             0,
                             line_yoffset,
-                            512,
+                            1024,
                             1,
                             gl::RED,
                             gl::FLOAT,
@@ -180,7 +189,7 @@ fn main() {
                         );
                     }
                     line_yoffset += 1;
-                    if (128) <= (line_yoffset) {
+                    if (1024) <= (line_yoffset) {
                         line_yoffset = 0;
                     };
                 }
@@ -192,7 +201,7 @@ fn main() {
                     ui.show_metrics_window(&mut true);
                     imgui::Window::new(&ui, im_str!("hello")).build(|| {
                         ui.text("bla2");
-                        ui.image(texture_id, [512., 128.]).build();
+                        ui.image(texture_id, [1024., 1024.]).build();
                         ui.text("bla3");
                     });
                     ui.show_demo_window(&mut true);
@@ -246,7 +255,7 @@ fn main() {
                 let mut c = &mut hc.lock().unwrap();
                 let hb = fftout[tup].clone();
                 let b = &hb.lock().unwrap();
-                for i in 0..512 {
+                for i in 0..1024 {
                     c[i] = ((5.00e-2)
                         * ((((b.ptr[i].re) * (b.ptr[i].re)) + ((b.ptr[i].im) * (b.ptr[i].im))).ln()
                             as f32));
@@ -264,7 +273,7 @@ fn main() {
                 println!("{} {}:{} start fftw plan ", Utc::now(), file!(), line!());
             }
             let mut plan: fftw::plan::C2CPlan64 = fftw::plan::C2CPlan::aligned(
-                &[512],
+                &[1024],
                 fftw::types::Sign::Forward,
                 fftw::types::Flag::Measure,
             )
@@ -390,7 +399,7 @@ fn main() {
                 }
             };
             let mut chans = Vec::new();
-            let mut buf = dev.create_buffer(512, false).unwrap_or_else(|err| {
+            let mut buf = dev.create_buffer(1024, false).unwrap_or_else(|err| {
                 {
                     println!(
                         "{} {}:{} can't create buffer  err={:?}",
@@ -446,7 +455,7 @@ fn main() {
                     let data_i: Vec<i16> = buf.channel_iter::<i16>(&(chans[0])).collect();
                     let data_q: Vec<i16> = buf.channel_iter::<i16>(&(chans[1])).collect();
                     a.timestamp = time_acquisition;
-                    for i in 0..512 {
+                    for i in 0..1024 {
                         a.ptr[i] = fftw::types::c64::new((data_i[i] as f64), (data_q[i] as f64));
                     }
                 }

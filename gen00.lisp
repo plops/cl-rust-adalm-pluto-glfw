@@ -76,8 +76,8 @@ panic = \"abort\"
 	(n-threads 3)
 	 (n-buf (+ n-threads 1))
 	 (n-buf-out 30)
-	 (n-samples 512)
-	 (tex-height 128)
+	 (n-samples 1024)
+	 (tex-height 1024)
 	 (tex-width n-samples))
     (define-module
 	`(main
@@ -210,7 +210,8 @@ panic = \"abort\"
 						     (try_iter)
 						     (collect))))
 					 (declare (type "Vec<_>" v))
-					;,(logprint "gui" `((v.len) v))
+					 ,(logprint "gui" `((v.len) ;v
+							    ))
 					 (for (c v)
 					      (let ((cc c)
 						    (hb (dot (aref fftout_scaled cc)
