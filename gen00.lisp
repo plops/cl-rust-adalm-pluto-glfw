@@ -200,7 +200,8 @@ panic = \"abort\"
 				   (let* ((imgui (imgui--Context--create))
 					  (imgui_glfw (imgui_glfw_rs--ImguiGLFW--new
 						       "&mut imgui"
-						       "&mut window")))
+						       "&mut window"))
+					  (line_yoffset 0))
 				     (imgui.set_ini_filename None)
 				     (while (not (window.should_close))
 				       
@@ -228,9 +229,9 @@ panic = \"abort\"
 									   ;:level
 									   0
 									   ;:xoffset
-									   (coerce c i32)
-									   ;:yoffset
 									   0
+									   ;:yoffset
+									   line_yoffset
 									   ;:width
 									   ,tex-width
 									   ;:height
@@ -243,7 +244,8 @@ panic = \"abort\"
 									   (coerce (coerce (ref (aref b 0))
 											   "*const f32")
 										   "*const c_void")
-									   )))))
+									   )))
+					       (incf line_yoffset)))
 					 )
 				       
 				       (space unsafe

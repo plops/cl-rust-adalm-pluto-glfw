@@ -158,6 +158,7 @@ fn main() {
             };
             let mut imgui = imgui::Context::create();
             let mut imgui_glfw = imgui_glfw_rs::ImguiGLFW::new(&mut imgui, &mut window);
+            let mut line_yoffset = 0;
             imgui.set_ini_filename(None);
             while (!(window.should_close())) {
                 let v: Vec<_> = r2.try_iter().collect();
@@ -179,15 +180,16 @@ fn main() {
                         gl::TexSubImage2D(
                             gl::TEXTURE_2D,
                             0,
-                            (c as i32),
                             0,
+                            line_yoffset,
                             512,
                             1,
                             gl::RED,
                             gl::FLOAT,
                             ((&(b[0]) as *const f32) as *const c_void),
                         );
-                    };
+                    }
+                    line_yoffset += 1;
                 }
                 unsafe {
                     gl::Clear(((gl::COLOR_BUFFER_BIT) | (gl::DEPTH_BUFFER_BIT)));
