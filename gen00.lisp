@@ -209,13 +209,18 @@ panic = \"abort\"
 						     (try_iter)
 						     (collect))))
 					 (declare (type "Vec<_>" v))
-					;,(logprint "gui" `((v.len) v))
+					,(logprint "gui" `((v.len) v))
 					 (for (c v)
-					      (let ((hb (dot (aref fftout_scaled c)
+					      (let ((cc c)
+						    (hb (dot (aref fftout_scaled cc)
 							     (clone)))
 						    (b (space "&" (dot hb
 									  (lock)
 									  (unwrap)))))
+						(declare
+						 (type usize cc)
+						 ;(type ,(format nil "Mutex<[f32;~a]>" n-samples) hb)
+						 )
 					       (space unsafe
 						      (progn
 							(gl--TexSubImage2D ;:target
@@ -223,7 +228,7 @@ panic = \"abort\"
 									   ;:level
 									   0
 									   ;:xoffset
-									   0
+									   (coerce c i32)
 									   ;:yoffset
 									   0
 									   ;:width
@@ -235,8 +240,8 @@ panic = \"abort\"
 									   ;:type_
 									   gl--FLOAT
 									   ;:pixels
-									   (coerce (coerce (ref b)
-											   "*const u8")
+									   (coerce (coerce (ref (aref b 0))
+											   "*const f32")
 										   "*const c_void")
 									   )))))
 					 )

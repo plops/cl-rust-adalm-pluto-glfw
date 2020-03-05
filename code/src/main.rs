@@ -161,20 +161,31 @@ fn main() {
             imgui.set_ini_filename(None);
             while (!(window.should_close())) {
                 let v: Vec<_> = r2.try_iter().collect();
+                {
+                    println!(
+                        "{} {}:{} gui  v.len()={:?}  v={:?}",
+                        Utc::now(),
+                        file!(),
+                        line!(),
+                        v.len(),
+                        v
+                    );
+                }
                 for c in v {
-                    let hb = fftout_scaled[c].clone();
+                    let cc: usize = c;
+                    let hb = fftout_scaled[cc].clone();
                     let b = &hb.lock().unwrap();
                     unsafe {
                         gl::TexSubImage2D(
                             gl::TEXTURE_2D,
                             0,
-                            0,
+                            (c as i32),
                             0,
                             512,
                             1,
                             gl::RED,
                             gl::FLOAT,
-                            ((&(b) as *const u8) as *const c_void),
+                            ((&(b[0]) as *const f32) as *const c_void),
                         );
                     };
                 }
