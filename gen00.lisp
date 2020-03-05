@@ -467,7 +467,13 @@ panic = \"abort\"
 				     ,(logprint "phy" `((phy.num_channels)
 							(dot phy (attr_read_all)
 							     (unwrap))))
-					      )
+
+				     ;; 2879999 R1:61439999 RF:30719999 RXSAMP:30719999", "dcxo_tune_coarse_available": "[0 0 0]", "trx_rate_governor_available": "nominal highest_osr", "rssi_gain_step_error": "lna_error: 0 0 0 0\nmixer_error: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0\ngain_step_calib_reg_val: 0 0 0 0 0", "xo_correction": "40000035", "ensm_mode_available": "sleep wait alert fdd pinctrl pinctrl_fdd_indep", "calib_mode": "auto", "filter_fir_config": "FIR Rx: 0,0 Tx: 0,0", "gain_table_config": "<gaintable AD9361 type=FULL dest=3 start=1300000000 end=4000000000>\n-3, 8, 0x20 ... 0x20\n</gaintable>\n", "xo_correction_available": "[39992035 1 40008035]", "ensm_mode": "fdd", "trx_rate_governor": "nominal", "dcxo_tune_fine_available": "[0 0 0]", "calib_mode_available": "auto manual manual_tx_quad tx_quad rf_dc_offs rssi_gain_step", "tx_path_rates": "BBPLL:983039999 DAC:122879999 T2:122879999 T1:61439999 TF:30719999 TXSAMP:30719999
+				     "}
+
+				     )
+
+				    
 				    
 				    
 				    (let* ((nchan 0))
