@@ -220,7 +220,8 @@ panic = \"abort\"
 					  (imgui_glfw (imgui_glfw_rs--ImguiGLFW--new
 						       "&mut imgui"
 						       "&mut window"))
-					  (line_yoffset 0))
+					  (line_yoffset 0)
+					  (buffer_fill 0s0))
 				     (imgui.set_ini_filename None)
 				     (while (not (window.should_close))
 				       
@@ -229,7 +230,9 @@ panic = \"abort\"
 						     (try_iter)
 						     (collect))))
 					 (declare (type "Vec<_>" v))
-					 ,(logprint "gui" `((v.len) ;v
+					 (setf buffer_fill (/ (* 100s0 (coerce (v.len) f32))
+							      ,(* 1s0 n-buf-out)))
+					 #+nil ,(logprint "gui" `((v.len) ;v
 							    ))
 					 "// each response received on r2 is a line that will be written into the texture"
 					 ,(format nil "// v.len() should never become ~a this would mean that the s2 channel is full and back pressure would lead to dropped lines. if v.len()" n-buf-out)
@@ -283,9 +286,9 @@ panic = \"abort\"
 					 (let ((ui (imgui_glfw.frame "&mut window"
 								     "&mut imgui")))
 					   (ui.show_metrics_window "&mut true")
-					   (dot (imgui--Window--new &ui (im_str! (string "hello")))
+					   (dot (imgui--Window--new &ui (ref (im_str! (string "buffer_fill={:?}%" ) buffer_fill)))
 						(build (lambda ()
-							 ;(ui.text (string "bla2"))
+					;(ui.text (string "bla2"))
 							 (dot (ui.image texture_id (list ,(* 1s0 tex-width)
 											 ,(* 1s0 tex-height)))
 							      (build)))))

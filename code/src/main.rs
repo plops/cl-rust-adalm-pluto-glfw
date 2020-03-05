@@ -180,18 +180,11 @@ fn main() {
             let mut imgui = imgui::Context::create();
             let mut imgui_glfw = imgui_glfw_rs::ImguiGLFW::new(&mut imgui, &mut window);
             let mut line_yoffset = 0;
+            let mut buffer_fill = 0.;
             imgui.set_ini_filename(None);
             while (!(window.should_close())) {
                 let v: Vec<_> = r2.try_iter().collect();
-                {
-                    println!(
-                        "{} {}:{} gui  v.len()={:?}",
-                        Utc::now(),
-                        file!(),
-                        line!(),
-                        v.len()
-                    );
-                }
+                buffer_fill = (((1.00e+2) * (v.len() as f32)) / (40.));
                 // each response received on r2 is a line that will be written into the texture
                 // v.len() should never become 40 this would mean that the s2 channel is full and back pressure would lead to dropped lines. if v.len()
                 for c in v {
@@ -222,9 +215,11 @@ fn main() {
                 {
                     let ui = imgui_glfw.frame(&mut window, &mut imgui);
                     ui.show_metrics_window(&mut true);
-                    imgui::Window::new(&ui, im_str!("hello")).build(|| {
-                        ui.image(texture_id, [256., 512.]).build();
-                    });
+                    imgui::Window::new(&ui, &(im_str!("buffer_fill={:?}%", buffer_fill))).build(
+                        || {
+                            ui.image(texture_id, [256., 512.]).build();
+                        },
+                    );
                     ui.show_demo_window(&mut true);
                     imgui_glfw.draw(ui, &mut window);
                 }
