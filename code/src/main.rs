@@ -67,7 +67,7 @@ fn main() {
             ptr: fftw::array::AlignedVec::new(512),
         })),
     ];
-    let mut fftout_scaled = [
+    let mut fftout_scaled: [Arc<Mutex<[f32; 512]>>; 30] = [
         std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
         std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
         std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
@@ -161,16 +161,23 @@ fn main() {
             imgui.set_ini_filename(None);
             while (!(window.should_close())) {
                 let v: Vec<_> = r2.try_iter().collect();
-                {
-                    println!(
-                        "{} {}:{} gui  v.len()={:?}  v={:?}",
-                        Utc::now(),
-                        file!(),
-                        line!(),
-                        v.len(),
-                        v
-                    );
-                };
+                for c in v {
+                    let hb = fftout_scaled[c].clone();
+                    let b = &hb.lock().unwrap();
+                    unsafe {
+                        gl::TexSubImage2D(
+                            gl::TEXTURE_2D,
+                            0,
+                            0,
+                            0,
+                            512,
+                            1,
+                            gl::RED,
+                            gl::FLOAT,
+                            ((&(b) as *const u8) as *const c_void),
+                        );
+                    };
+                }
                 unsafe {
                     gl::Clear(((gl::COLOR_BUFFER_BIT) | (gl::DEPTH_BUFFER_BIT)));
                 }

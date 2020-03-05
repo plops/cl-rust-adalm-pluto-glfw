@@ -131,6 +131,7 @@ panic = \"abort\"
 		       (fftout_scaled
 			(list ,@(loop for i below n-buf-out collect
 				     `(std--sync--Arc--new (std--sync--Mutex--new  ,(format nil "[0.0;~a]" n-samples)))))))
+		  (declare (type ,(format nil "[Arc<Mutex<[f32;~a]>>;~a]" n-samples n-buf-out) fftout_scaled))
 		  (let ((core_ids (dot (core_affinity--get_core_ids)
 				       (unwrap))))
 		    (for (a core_ids)
@@ -208,7 +209,37 @@ panic = \"abort\"
 						     (try_iter)
 						     (collect))))
 					 (declare (type "Vec<_>" v))
-					 ,(logprint "gui" `((v.len) v)))
+					;,(logprint "gui" `((v.len) v))
+					 (for (c v)
+					      (let ((hb (dot (aref fftout_scaled c)
+							     (clone)))
+						    (b (space "&" (dot hb
+									  (lock)
+									  (unwrap)))))
+					       (space unsafe
+						      (progn
+							(gl--TexSubImage2D ;:target
+									   gl--TEXTURE_2D
+									   ;:level
+									   0
+									   ;:xoffset
+									   0
+									   ;:yoffset
+									   0
+									   ;:width
+									   ,tex-width
+									   ;:height
+									   1
+									   ;:format
+									   gl--RED
+									   ;:type_
+									   gl--FLOAT
+									   ;:pixels
+									   (coerce (coerce (ref b)
+											   "*const u8")
+										   "*const c_void")
+									   )))))
+					 )
 				       
 				       (space unsafe
 					      (progn
