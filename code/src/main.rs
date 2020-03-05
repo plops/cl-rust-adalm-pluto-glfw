@@ -110,12 +110,7 @@ fn main() {
         std::sync::Arc::new(std::sync::Mutex::new([0.0; 1024])),
         std::sync::Arc::new(std::sync::Mutex::new([0.0; 1024])),
     ];
-    let core_ids = core_affinity::get_core_ids().unwrap();
-    for a in core_ids {
-        {
-            println!("{} {}:{} affinity  a={:?}", Utc::now(), file!(), line!(), a);
-        }
-    }
+    // start all the threads in a crossbeam scope, so that they can access the pipeline storage without Rust making it too difficult
     crossbeam_utils::thread::scope(|scope| {
         scope.builder().name("gui".into()).spawn(|_| {
             let wg = barrier_pipeline_setup.clone();
@@ -323,6 +318,9 @@ fn main() {
         });
         scope.builder().name("sdr_reader".into()).spawn(|_| {
             let wg = barrier_pipeline_setup.clone();
+            // i start my linux with the kernel parameter isolcpus=0,1
+            // the sdr_reader thread is the only process in this core
+            // i'm not sure if that helps at all against underflow. perhaps the usb communication is handled in the kernel which will then run on slightly busier cores
             core_affinity::set_for_current(core_affinity::CoreId { id: 0 });
             let ctx = iio::Context::create_network("192.168.2.1").unwrap_or_else(|err_| {
                 {

@@ -143,10 +143,12 @@ panic = \"abort\"
 			(list ,@(loop for i below n-buf-out collect
 				     `(std--sync--Arc--new (std--sync--Mutex--new  ,(format nil "[0.0;~a]" n-samples)))))))
 		  (declare (type ,(format nil "[Arc<Mutex<[f32;~a]>>;~a]" n-samples n-buf-out) fftout_scaled))
-		  (let ((core_ids (dot (core_affinity--get_core_ids)
+		  
+		  #+nil (let ((core_ids (dot (core_affinity--get_core_ids)
 				       (unwrap))))
 		    (for (a core_ids)
 			 ,(logprint "affinity" `(a))))
+		  "// start all the threads in a crossbeam scope, so that they can access the pipeline storage without Rust making it too difficult"
 		  ,(let ((l `((gui
 			       (let* (
 				      (glfw (dot (glfw--init glfw--FAIL_ON_ERRORS)
@@ -391,6 +393,10 @@ panic = \"abort\"
 					       (unwrap)))))))))
 			      (sdr_reader
 			       (do0
+				"// i start my linux with the kernel parameter isolcpus=0,1"
+				"// the sdr_reader thread is the only process in this core"
+				"// i'm not sure if that helps at all against underflow. perhaps the usb communication is handled in the kernel which will then run on slightly busier cores"
+				
 				(core_affinity--set_for_current (make-instance core_affinity--CoreId :id 0))
 				;; https://github.com/fpagliughi/rust-industrial-io/blob/master/examples/riio_detect.rs
 				(let ((ctx (dot (iio--Context--create_network (string "192.168.2.1"))
