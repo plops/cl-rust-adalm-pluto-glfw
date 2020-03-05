@@ -30,7 +30,7 @@ fn main() {
     let (s0, r0) = crossbeam_channel::bounded(4);
     let barrier_pipeline_setup = std::sync::Arc::new(std::sync::Barrier::new(3));
     let (s1, r1) = crossbeam_channel::bounded(4);
-    let (s2, r2) = crossbeam_channel::unbounded();
+    let (s2, r2) = crossbeam_channel::bounded(30);
     let mut fftin = [
         std::sync::Arc::new(std::sync::Mutex::new(SendComplex {
             timestamp: Utc::now(),
@@ -68,6 +68,24 @@ fn main() {
         })),
     ];
     let mut fftout_scaled = [
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
+        std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
         std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
         std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
         std::sync::Arc::new(std::sync::Mutex::new([0.0; 512])),
@@ -144,7 +162,14 @@ fn main() {
             while (!(window.should_close())) {
                 let v: Vec<_> = r2.try_iter().collect();
                 {
-                    println!("{} {}:{} gui  v={:?}", Utc::now(), file!(), line!(), v);
+                    println!(
+                        "{} {}:{} gui  v.len()={:?}  v={:?}",
+                        Utc::now(),
+                        file!(),
+                        line!(),
+                        v.len(),
+                        v
+                    );
                 };
                 unsafe {
                     gl::Clear(((gl::COLOR_BUFFER_BIT) | (gl::DEPTH_BUFFER_BIT)));
@@ -214,7 +239,7 @@ fn main() {
                 }
                 s2.send(count).unwrap();
                 count += 1;
-                if (4) <= (count) {
+                if (30) <= (count) {
                     count = 0;
                 };
             }

@@ -75,7 +75,7 @@ panic = \"abort\"
 	 
 	(n-threads 3)
 	 (n-buf (+ n-threads 1))
-	 (n-buf-out 12)
+	 (n-buf-out 30)
 	 (n-samples 512)
 	 (tex-height 128)
 	 (tex-width n-samples))
@@ -117,7 +117,7 @@ panic = \"abort\"
 		    (barrier_pipeline_setup (std--sync--Arc--new (std--sync--Barrier--new ,n-threads)))
 		   
 		    ((values s1 r1) (crossbeam_channel--bounded ,n-buf)) ;; fft_processor -> fft_scaler
-		    ((values s2 r2) (crossbeam_channel--unbounded))) ;; fft_scaler -> opengl
+		    ((values s2 r2) (crossbeam_channel--bounded ,n-buf-out))) ;; fft_scaler -> opengl
 		(let* ((fftin
 			(list ,@(loop for i below n-buf collect
 				     `(std--sync--Arc--new
@@ -208,7 +208,7 @@ panic = \"abort\"
 						     (try_iter)
 						     (collect))))
 					 (declare (type "Vec<_>" v))
-					 ,(logprint "gui" `(v)))
+					 ,(logprint "gui" `((v.len) v)))
 				       
 				       (space unsafe
 					      (progn
@@ -286,11 +286,9 @@ panic = \"abort\"
 					       (send count)
 					       (unwrap))
 
-
-					  
 					  (do0
 					   (incf count)
-					   (when (<= ,n-buf count)
+					   (when (<= ,n-buf-out count)
 					     (setf count 0))))))))))
 			     
 			      (fft_processor
