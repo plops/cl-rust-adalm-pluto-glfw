@@ -111,14 +111,13 @@ panic = \"abort\"
 		"fftw::array::AlignedVec<num_complex::Complex<f64>>")))
 	    "unsafe impl Send for SendComplex {}")
 	   (defun main ()
-	     (let* (;(keep_pipeline_running (std--sync--Arc--new (std--sync--atomic--AtomicBool--new true)))
-		    (keep_running (std--sync--atomic--AtomicBool--new true)))
+	     (let* ((keep_running (std--sync--atomic--AtomicBool--new true)))
 	      (let (((values s0 r0) (crossbeam_channel--bounded ,n-buf)) ;; sdr_receiver -> fft_processor
 					;(wait_group_pipeline_setup (crossbeam_utils--sync--WaitGroup--new))
 		    (barrier_pipeline_setup (std--sync--Arc--new (std--sync--Barrier--new ,n-threads)))
 		   
 		    ((values s1 r1) (crossbeam_channel--bounded ,n-buf)) ;; fft_processor -> fft_scaler
-		    #+nil ((values s2 r2) (crossbeam_channel--bounded ,n-buf))) ;; fft_scaler -> opengl
+		    ((values s2 r2) (crossbeam_channel--unbounded))) ;; fft_scaler -> opengl
 		(let* ((fftin
 			(list ,@(loop for i below n-buf collect
 				     `(std--sync--Arc--new
@@ -203,6 +202,14 @@ panic = \"abort\"
 						       "&mut window")))
 				     (imgui.set_ini_filename None)
 				     (while (not (window.should_close))
+				       
+
+				       (let ((v (dot r2
+						     (try_iter)
+						     (collect))))
+					 (declare (type "Vec<_>" v))
+					 ,(logprint "gui" `(v)))
+				       
 				       (space unsafe
 					      (progn
 						(gl--Clear
@@ -236,7 +243,7 @@ panic = \"abort\"
 						Action--Press
 						_)
 					       (progn
-						 ,(logprint "gui wants to quit" `())
+						 ,(logprint "gui wants to quit, notify all threads" `())
 						 (dot keep_running (swap false std--sync--atomic--Ordering--Relaxed))
 						 (window.set_should_close true)))
 					      (t "{}"))))))))
@@ -275,9 +282,9 @@ panic = \"abort\"
 									     (ln))
 									f32)))
 
-					  #+nil (dot s1
-						     (send tup)
-						     (unwrap))
+					  (dot s2
+					       (send count)
+					       (unwrap))
 
 
 					  
