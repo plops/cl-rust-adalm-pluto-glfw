@@ -286,9 +286,10 @@ panic = \"abort\"
 					 (let ((ui (imgui_glfw.frame "&mut window"
 								     "&mut imgui")))
 					   (ui.show_metrics_window "&mut true")
-					   (dot (imgui--Window--new &ui (ref (im_str! (string "buffer_fill={:?}%" ) buffer_fill)))
+					   (dot (imgui--Window--new &ui (im_str! (string "waterfall fft") ))
 						(build (lambda ()
 					;(ui.text (string "bla2"))
+							 (ui.text (im_str! (string "buffer_fill={:?}%" ) buffer_fill))
 							 (dot (ui.image texture_id (list ,(* 1s0 tex-width)
 											 ,(* 1s0 tex-height)))
 							      (build)))))

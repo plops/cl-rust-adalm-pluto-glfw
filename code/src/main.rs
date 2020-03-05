@@ -215,11 +215,10 @@ fn main() {
                 {
                     let ui = imgui_glfw.frame(&mut window, &mut imgui);
                     ui.show_metrics_window(&mut true);
-                    imgui::Window::new(&ui, &(im_str!("buffer_fill={:?}%", buffer_fill))).build(
-                        || {
-                            ui.image(texture_id, [256., 512.]).build();
-                        },
-                    );
+                    imgui::Window::new(&ui, im_str!("waterfall fft")).build(|| {
+                        ui.text(im_str!("buffer_fill={:?}%", buffer_fill));
+                        ui.image(texture_id, [256., 512.]).build();
+                    });
                     ui.show_demo_window(&mut true);
                     imgui_glfw.draw(ui, &mut window);
                 }
