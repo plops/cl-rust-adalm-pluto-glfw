@@ -271,10 +271,17 @@ fn main() {
                 let scale = 9.00e-2;
                 let offset = (-8.0);
                 // convert complex fft results to log of magnitude, apply scale and offset and preform fftshift
-                for i in 0..257 {
-                    c[(i + 256)] = ((scale)
+                for i in 0..256 {
+                    c[(i + 255)] = ((scale)
                         * (offset
                             + ((((b.ptr[i].re) * (b.ptr[i].re)) + ((b.ptr[i].im) * (b.ptr[i].im)))
+                                .ln() as f32)));
+                }
+                for i in 0..256 {
+                    let j = (i + 256);
+                    c[i] = ((scale)
+                        * (offset
+                            + ((((b.ptr[j].re) * (b.ptr[j].re)) + ((b.ptr[j].im) * (b.ptr[j].im)))
                                 .ln() as f32)));
                 }
                 s2.send(count).unwrap();

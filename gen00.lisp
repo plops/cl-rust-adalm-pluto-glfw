@@ -340,8 +340,8 @@ panic = \"abort\"
 					  (let ((scale 9e-2)
 						(offset -8s0))
 					    "// convert complex fft results to log of magnitude, apply scale and offset and preform fftshift"
-					    (for (i (slice 0 ,(+ 1 (/ n-samples 2))))
-						 (setf (aref c (+ i ,(/ n-samples 2)))
+					    (for (i (slice 0 ,(/ n-samples 2)))
+						 (setf (aref c (+ i ,(- (/ n-samples 2) 1)))
 						       (* scale
 							  (+ offset (coerce (dot (+ (* (dot (aref b.ptr i) re)
 										       (dot (aref b.ptr i) re))
@@ -349,8 +349,8 @@ panic = \"abort\"
 										       (dot (aref b.ptr i) im)))
 										 (ln))
 									    f32)))))
-					    #+nil (for (i (slice 0 ,(/ n-samples 2)))
-						 (let ((j (+ i ,(+ 1 (/ n-samples 2)))))
+					    (for (i (slice 0 ,(/ n-samples 2)))
+						 (let ((j (+ i ,(/ n-samples 2))))
 						  (setf (aref c i) (* scale
 								      (+ offset (coerce (dot (+ (* (dot (aref b.ptr j) re)
 												   (dot (aref b.ptr j) re))
