@@ -223,9 +223,7 @@ fn main() {
                     let ui = imgui_glfw.frame(&mut window, &mut imgui);
                     ui.show_metrics_window(&mut true);
                     imgui::Window::new(&ui, im_str!("hello")).build(|| {
-                        ui.text("bla2");
                         ui.image(texture_id, [256., 512.]).build();
-                        ui.text("bla3");
                     });
                     ui.show_demo_window(&mut true);
                     imgui_glfw.draw(ui, &mut window);
@@ -278,8 +276,8 @@ fn main() {
                 let mut c = &mut hc.lock().unwrap();
                 let hb = fftout[tup].clone();
                 let b = &hb.lock().unwrap();
-                let scale = ((1.10e+2) / (256 as f32));
-                let offset = (-0.40);
+                let scale = ((23.) / (256 as f32));
+                let offset = (-0.90);
                 // convert complex fft results to log of magnitude, apply scale and offset and preform fftshift
                 for i in 0..128 {
                     c[(i + 127)] = (offset
