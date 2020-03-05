@@ -77,7 +77,7 @@ panic = \"abort\"
 	 (n-buf (+ n-threads 1))
 	 (n-buf-out 30)
 	 (n-samples 1024)
-	 (tex-height 1024)
+	 (tex-height 512)
 	 (tex-width n-samples))
     (define-module
 	`(main
@@ -318,13 +318,14 @@ panic = \"abort\"
 
 					  
 					  (for (i (slice 0 ,n-samples))
-					       (setf (aref c i) (* 5e-2
-								   (coerce (dot (+ (* (dot (aref b.ptr i) re)
-										    (dot (aref b.ptr i) re))
-										 (* (dot (aref b.ptr i) im)
-										    (dot (aref b.ptr i) im)))
-									      (ln))
-									 f32))))
+					       (setf (aref c i) (* 9e-2
+								   (+ -8s0 (coerce (dot (+ (* (dot (aref b.ptr i) re)
+										       (dot (aref b.ptr i) re))
+										    (* (dot (aref b.ptr i) im)
+										       (dot (aref b.ptr i) im)))
+										 (ln))
+									      f32)
+								      ))))
 
 					  (dot s2
 					       (send count)

@@ -121,10 +121,10 @@ fn main() {
             gl::load_with(|symbol| {
                 return window.get_proc_address(symbol);
             });
-            let mut data = Vec::with_capacity(((1024) * (1024)));
+            let mut data = Vec::with_capacity(((1024) * (512)));
             let mut texture_id;
             for i in 0..1024 {
-                for j in 0..1024 {
+                for j in 0..512 {
                     data.push((j as u8));
                     data.push((i as u8));
                     data.push(((j + i) as u8));
@@ -149,7 +149,7 @@ fn main() {
                     0,
                     (gl::RGB as i32),
                     (1024 as i32),
-                    (1024 as i32),
+                    (512 as i32),
                     0,
                     gl::RGB,
                     gl::UNSIGNED_BYTE,
@@ -189,7 +189,7 @@ fn main() {
                         );
                     }
                     line_yoffset += 1;
-                    if (1024) <= (line_yoffset) {
+                    if (512) <= (line_yoffset) {
                         line_yoffset = 0;
                     };
                 }
@@ -201,7 +201,7 @@ fn main() {
                     ui.show_metrics_window(&mut true);
                     imgui::Window::new(&ui, im_str!("hello")).build(|| {
                         ui.text("bla2");
-                        ui.image(texture_id, [1024., 1024.]).build();
+                        ui.image(texture_id, [1024., 512.]).build();
                         ui.text("bla3");
                     });
                     ui.show_demo_window(&mut true);
@@ -256,9 +256,10 @@ fn main() {
                 let hb = fftout[tup].clone();
                 let b = &hb.lock().unwrap();
                 for i in 0..1024 {
-                    c[i] = ((5.00e-2)
-                        * ((((b.ptr[i].re) * (b.ptr[i].re)) + ((b.ptr[i].im) * (b.ptr[i].im))).ln()
-                            as f32));
+                    c[i] = ((9.00e-2)
+                        * ((-8.0)
+                            + ((((b.ptr[i].re) * (b.ptr[i].re)) + ((b.ptr[i].im) * (b.ptr[i].im)))
+                                .ln() as f32)));
                 }
                 s2.send(count).unwrap();
                 count += 1;
