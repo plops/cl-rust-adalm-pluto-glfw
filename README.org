@@ -20,6 +20,32 @@ https://stjepang.github.io/2019/01/29/lock-free-rust-crossbeam-in-2019.html
 the visualizer imgui is running simultaneously and occasionally (60fps) updates the texture with the waterfall fft with the output of the last stage
 
 
+* What settings we can change?
+
+martin@labolg ~ $ ssh root@192.168.2.1
+root@192.168.2.1's password: 
+Welcome to:
+______ _       _        _________________
+| ___ \ |     | |      /  ___|  _  \ ___ \
+| |_/ / |_   _| |_ ___ \ `--.| | | | |_/ /
+|  __/| | | | | __/ _ \ `--. \ | | |    /
+| |   | | |_| | || (_) /\__/ / |/ /| |\ \
+\_|   |_|\__,_|\__\___/\____/|___/ \_| \_|
+
+v0.31
+http://wiki.analog.com/university/tools/pluto
+# ls
+# cd /sys/bus/iio/devices/
+# ls
+iio:device0  iio:device1  iio:device2  iio:device3  iio:device4
+# cd iio\:device1/
+# ls
+calib_mode
+calib_mode_available
+dcxo_tune_coarse
+dcxo_tune_coarse_available
+
+
 * References:
 
   |    date | link                                                                                                            | note                                  |
