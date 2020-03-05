@@ -22,18 +22,18 @@ the visualizer imgui is running simultaneously and occasionally (60fps) updates 
 
 * References:
 
-
-   | https://users.rust-lang.org/t/sharing-buffer-between-threads-without-locking/10508                              |
-   | https://docs.rs/triple_buffer/5.0.4/triple_buffer/                                                              |
-   | https://medium.com/@polyglot_factotum/rust-concurrency-patterns-communicate-by-sharing-your-sender-11a496ce7791 |
-   | https://wiki.analog.com/resources/tools-software/linux-software/libiio_internals                                |
-   | 2017-03 https://users.rust-lang.org/t/spmc-buffer-triple-buffering-for-multiple-consumers/10118                 |
-   | 2017-11 https://users.rust-lang.org/t/code-review-triplebuffer-for-sending-huge-objects-between-threads/13787/7 |
-   | https://github.com/HadrienG2/triple-buffer consumer is not in sync with producer                                |
-   | https://doc.rust-lang.org/book/ch16-02-message-passing.html                                                     |
-   | https://stjepang.github.io/2019/01/29/lock-free-rust-crossbeam-in-2019.html scoped thread, atomic cell          |
-   | https://users.rust-lang.org/t/how-can-i-allocate-aligned-memory-in-rust/33293 std::slice::from_raw_parts[_mut]  |
-   | https://users.rust-lang.org/t/solved-how-to-move-non-send-between-threads-or-an-alternative/19928               |
+  |    date | link                                                                                                            | note                                  |
+  |         | https://users.rust-lang.org/t/sharing-buffer-between-threads-without-locking/10508                              |                                       |
+  |         | https://docs.rs/triple_buffer/5.0.4/triple_buffer/                                                              |                                       |
+  |         | https://medium.com/@polyglot_factotum/rust-concurrency-patterns-communicate-by-sharing-your-sender-11a496ce7791 |                                       |
+  |         | https://wiki.analog.com/resources/tools-software/linux-software/libiio_internals                                |                                       |
+  | 2017-03 | https://users.rust-lang.org/t/spmc-buffer-triple-buffering-for-multiple-consumers/10118                         |                                       |
+  | 2017-11 | https://users.rust-lang.org/t/code-review-triplebuffer-for-sending-huge-objects-between-threads/13787/7         |                                       |
+  |         | https://github.com/HadrienG2/triple-buffer                                                                      | consumer is not in sync with producer |
+  |         | https://doc.rust-lang.org/book/ch16-02-message-passing.html                                                     |                                       |
+  |         | https://stjepang.github.io/2019/01/29/lock-free-rust-crossbeam-in-2019.html                                     | scoped thread, atomic cell            |
+  |         | https://users.rust-lang.org/t/how-can-i-allocate-aligned-memory-in-rust/33293                                   | std::slice::from_raw_parts[_mut]      |
+  |         | https://users.rust-lang.org/t/solved-how-to-move-non-send-between-threads-or-an-alternative/19928               |                                       |
 
 
 * On Reducing lag:
