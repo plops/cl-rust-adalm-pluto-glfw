@@ -400,6 +400,16 @@ fn main() {
                 }
                 std::process::exit(2);
             });
+            {
+                println!(
+                    "{} {}:{} phy  phy.num_channels()={:?}  phy.attr_read_all().unwrap()={:?}",
+                    Utc::now(),
+                    file!(),
+                    line!(),
+                    phy.num_channels(),
+                    phy.attr_read_all().unwrap()
+                );
+            }
             let mut nchan = 0;
             for mut chan in dev.channels() {
                 if (Some(std::any::TypeId::of::<i16>())) == (chan.type_of()) {

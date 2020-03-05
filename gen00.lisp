@@ -427,12 +427,16 @@ panic = \"abort\"
 						(unwrap_or_else (lambda (err_)
 								  ,(logprint "couldnt open iio context")
 								  (std--process--exit 1))))))
+
+				  
+				  
 				  (let* ((trigs (Vec--new)))
 				    (for (dev (ctx.devices))
 					 (if (dev.is_trigger)
 					     (case (dev.id)
 					       ((Some id) (trigs.push id))
 					       (None "()"))
+					     
 					     (println! (string "{} [{}]: {} channels")
 						       (dot dev
 							    (id)
@@ -456,7 +460,16 @@ panic = \"abort\"
 							    (unwrap_or_else
 							     (lambda ()
 							       ,(logprint (format nil "no device named ~a" name) `())
-							       (std--process--exit 2))))))) 
+							       (std--process--exit 2)))))))
+
+				    (do0
+					      
+				     ,(logprint "phy" `((phy.num_channels)
+							(dot phy (attr_read_all)
+							     (unwrap))))
+					      )
+				    
+				    
 				    (let* ((nchan 0))
 				      (for ("mut chan" (dev.channels))
 					   (when (== (Some (std--any--TypeId--of--<i16>))
@@ -468,6 +481,8 @@ panic = \"abort\"
 					   ,(logprint "no 16 bit channels found" `())
 					   (std--process--exit 1))
 					  ,(logprint "16 bit channels found" `(nchan))))
+
+				    
 				    (do0
 				     (let* ((chans (Vec--new)))
 				       (let* ((buf (dot dev
