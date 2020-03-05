@@ -125,6 +125,10 @@ panic = \"abort\"
 		   
 		    ((values s1 r1) (crossbeam_channel--bounded ,n-buf)) ;; fft_processor -> fft_scaler
 		    ((values s2 r2) (crossbeam_channel--bounded ,n-buf-out))) ;; fft_scaler -> opengl
+		"// pipeline storage:"
+		"// fftin is filled by sdr_receiver thread and consumed by fft_processor thread"
+		"// fftout is filled by fft_processor and consumed by fft_scaler"
+		"// fftout_scaled is filled by fft_scaler and consumed by the gui thread"
 		(let* ((fftin
 			(list ,@(loop for i below n-buf collect
 				     `(std--sync--Arc--new

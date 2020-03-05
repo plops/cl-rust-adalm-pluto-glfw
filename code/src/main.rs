@@ -38,6 +38,10 @@ fn main() {
     let barrier_pipeline_setup = std::sync::Arc::new(std::sync::Barrier::new(3));
     let (s1, r1) = crossbeam_channel::bounded(4);
     let (s2, r2) = crossbeam_channel::bounded(30);
+    // pipeline storage:
+    // fftin is filled by sdr_receiver thread and consumed by fft_processor thread
+    // fftout is filled by fft_processor and consumed by fft_scaler
+    // fftout_scaled is filled by fft_scaler and consumed by the gui thread
     let mut fftin = [
         std::sync::Arc::new(std::sync::Mutex::new(SendComplex {
             timestamp: Utc::now(),
