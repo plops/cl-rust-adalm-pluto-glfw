@@ -396,6 +396,7 @@ panic = \"abort\"
 				"// i start my linux with the kernel parameter isolcpus=0,1"
 				"// the sdr_reader thread is the only process in this core"
 				"// i'm not sure if that helps at all against underflow. perhaps the usb communication is handled in the kernel which will then run on slightly busier cores"
+				"// i keep it in in case i ever get this program compiled for the arm processor on the zynq"
 				
 				(core_affinity--set_for_current (make-instance core_affinity--CoreId :id 0))
 				;; https://github.com/fpagliughi/rust-industrial-io/blob/master/examples/riio_detect.rs
