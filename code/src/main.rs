@@ -24,7 +24,6 @@ pub struct SendComplex {
     pub timestamp: DateTime<Utc>,
     pub ptr: fftw::array::AlignedVec<num_complex::Complex<f64>>,
 }
-unsafe impl Send for SendComplex {}
 fn main() {
     let mut keep_running = std::sync::atomic::AtomicBool::new(true);
     // dataprocessing pipeline:
@@ -321,7 +320,7 @@ fn main() {
             // i start my linux with the kernel parameter isolcpus=0,1
             // the sdr_reader thread is the only process in this core
             // i'm not sure if that helps at all against underflow. perhaps the usb communication is handled in the kernel which will then run on slightly busier cores
-            // i keep it in in case i ever get this program compiled for the arm processor on the zynq
+            // i keep it in in case i ever get this program compiled for the embedded arm processor on the zynq in the pluto
             core_affinity::set_for_current(core_affinity::CoreId { id: 0 });
             let ctx = iio::Context::create_network("192.168.2.1").unwrap_or_else(|err_| {
                 {

@@ -104,12 +104,15 @@ panic = \"abort\"
 		(crossbeam_channel bounded))
 	   (use (fftw plan C2CPlan))
 	   (do0
+	    "// for fftw to be fast storage in the data processing pipeline must be aligned for simd (on 16 byte boundary). the fftw package comes with a type for this."
 	    (space pub
-	     (defstruct0 SendComplex
-		 ("pub timestamp" "DateTime<Utc>")
-	       ("pub ptr"
-		"fftw::array::AlignedVec<num_complex::Complex<f64>>")))
-	    "unsafe impl Send for SendComplex {}")
+		   (defstruct0 SendComplex
+		       ("pub timestamp" "DateTime<Utc>")
+		     ("pub ptr"
+		      "fftw::array::AlignedVec<num_complex::Complex<f64>>")))
+	    "// the following is required to tell rust that we can send pointers to complex arrays between threads"
+	    "unsafe impl Send for SendComplex {}"
+	    )
 	   (defun main ()
 	     (let* ((keep_running (std--sync--atomic--AtomicBool--new true)))
 	       "// dataprocessing pipeline:"
@@ -396,7 +399,7 @@ panic = \"abort\"
 				"// i start my linux with the kernel parameter isolcpus=0,1"
 				"// the sdr_reader thread is the only process in this core"
 				"// i'm not sure if that helps at all against underflow. perhaps the usb communication is handled in the kernel which will then run on slightly busier cores"
-				"// i keep it in in case i ever get this program compiled for the arm processor on the zynq"
+				"// i keep it in in case i ever get this program compiled for the embedded arm processor on the zynq in the pluto"
 				
 				(core_affinity--set_for_current (make-instance core_affinity--CoreId :id 0))
 				;; https://github.com/fpagliughi/rust-industrial-io/blob/master/examples/riio_detect.rs
