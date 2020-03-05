@@ -237,7 +237,7 @@ panic = \"abort\"
 						_)
 					       (progn
 						 ,(logprint "gui wants to quit" `())
-						 (dot keep_running (swap true std--sync--atomic--Ordering--Relaxed))
+						 (dot keep_running (swap false std--sync--atomic--Ordering--Relaxed))
 						 (window.set_should_close true)))
 					      (t "{}"))))))))
 			      (fft_scaler
@@ -249,7 +249,6 @@ panic = \"abort\"
 				,(logprint "fft_scaler loop starts" `())
 				(let* ((count 0))
 				  (while (dot keep_running (load std--sync--atomic--Ordering--Relaxed))
-				    ,(logprint "fft_scaler running"`((dot keep_running (load std--sync--atomic--Ordering--Relaxed))))
 				    (let ((tup (dot r1
 						    (recv)
 						    (ok)

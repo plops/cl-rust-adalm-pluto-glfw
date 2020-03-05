@@ -169,7 +169,7 @@ fn main() {
                                     line!()
                                 );
                             }
-                            keep_running.swap(true, std::sync::atomic::Ordering::Relaxed);
+                            keep_running.swap(false, std::sync::atomic::Ordering::Relaxed);
                             window.set_should_close(true);
                         }
                         _ => {}
@@ -177,34 +177,42 @@ fn main() {
                 }
             }
         });
-        scope.builder().name("fft_scaler".into()).spawn(| _|{
-                                                let wg  = barrier_pipeline_setup.clone();
-                                                {
-                                        println!("{} {}:{} fft_scaler waits for other pipeline threads ", Utc::now(), file!(), line!());
-}
-                wg.wait();
-                {
-                                        println!("{} {}:{} fft_scaler loop starts ", Utc::now(), file!(), line!());
-}
-                                let mut count  = 0;
-                while (keep_running.load(std::sync::atomic::Ordering::Relaxed)) {
-                                        {
-                                                println!("{} {}:{} fft_scaler running  keep_running.load(std::sync::atomic::Ordering::Relaxed)={:?}", Utc::now(), file!(), line!(), keep_running.load(std::sync::atomic::Ordering::Relaxed));
-}
-                                                            let tup: usize  = r1.recv().ok().unwrap();
-                                        let mut hc  = fftout_scaled[count].clone();
-                    let mut c  = &mut hc.lock().unwrap();
-                                        let hb  = fftout[tup].clone();
-                    let b  = & hb.lock().unwrap();
-                    for  i in 0..512 {
-                                                                        c[i]=((((b.ptr[i].re)*(b.ptr[i].re))+((b.ptr[i].im)*(b.ptr[i].im))).ln() as f32);
-}
-                                        count += 1 ;
-                    if  (4)<=(count)  {
-                                                                                                count=0;
-};
-};
-});
+        scope.builder().name("fft_scaler".into()).spawn(|_| {
+            let wg = barrier_pipeline_setup.clone();
+            {
+                println!(
+                    "{} {}:{} fft_scaler waits for other pipeline threads ",
+                    Utc::now(),
+                    file!(),
+                    line!()
+                );
+            }
+            wg.wait();
+            {
+                println!(
+                    "{} {}:{} fft_scaler loop starts ",
+                    Utc::now(),
+                    file!(),
+                    line!()
+                );
+            }
+            let mut count = 0;
+            while (keep_running.load(std::sync::atomic::Ordering::Relaxed)) {
+                let tup: usize = r1.recv().ok().unwrap();
+                let mut hc = fftout_scaled[count].clone();
+                let mut c = &mut hc.lock().unwrap();
+                let hb = fftout[tup].clone();
+                let b = &hb.lock().unwrap();
+                for i in 0..512 {
+                    c[i] = ((((b.ptr[i].re) * (b.ptr[i].re)) + ((b.ptr[i].im) * (b.ptr[i].im))).ln()
+                        as f32);
+                }
+                count += 1;
+                if (4) <= (count) {
+                    count = 0;
+                };
+            }
+        });
         scope.builder().name("fft_processor".into()).spawn(|_| {
             let wg = barrier_pipeline_setup.clone();
             {
