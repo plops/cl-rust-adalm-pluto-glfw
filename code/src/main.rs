@@ -335,176 +335,123 @@ fn main() {
                 s1.send(tup).unwrap();
             }
         });
-        scope.builder().name("sdr_reader".into()).spawn(|_| {
-            let wg = barrier_pipeline_setup.clone();
-            // i start my linux with the kernel parameter isolcpus=0,1
-            // the sdr_reader thread is the only process in this core
-            // i'm not sure if that helps at all against underflow. perhaps the usb communication is handled in the kernel which will then run on slightly busier cores
-            // i keep it in in case i ever get this program compiled for the embedded arm processor on the zynq in the pluto
-            core_affinity::set_for_current(core_affinity::CoreId { id: 0 });
-            let ctx = iio::Context::create_network("192.168.2.1").unwrap_or_else(|err_| {
+        scope.builder().name("sdr_reader".into()).spawn(| _|{
+                                                let wg  = barrier_pipeline_setup.clone();
+                                // i start my linux with the kernel parameter isolcpus=0,1
+                // the sdr_reader thread is the only process in this core
+                // i'm not sure if that helps at all against underflow. perhaps the usb communication is handled in the kernel which will then run on slightly busier cores
+                // i keep it in in case i ever get this program compiled for the embedded arm processor on the zynq in the pluto
+                core_affinity::set_for_current(core_affinity::CoreId {id: 0});
+                                let ctx  = iio::Context::create_network("192.168.2.1").unwrap_or_else(| err_|{
+                                        {
+                                                println!("{} {}:{} couldnt open iio context ", Utc::now(), file!(), line!());
+}
+                                        std::process::exit(1);
+});
+                                let mut trigs  = Vec::new();
+                for  dev in ctx.devices() {
+                                        if  dev.is_trigger()  {
+                                                match dev.id() {
+                                                        Some(id) => {
+                                                        trigs.push(id)
+},
+                                                        None => {
+                                                        ()
+},
+}
+} else {
+                                                println!("{} [{}]: {} channels", dev.id().unwrap_or_default(), dev.name().unwrap_or_default(), dev.num_channels());
+}
+}
+                if  trigs.is_empty()  {
+                                        {
+                                                println!("{} {}:{} no triggers ", Utc::now(), file!(), line!());
+}
+} else {
+                                        for  s in trigs {
+                                                println!("trigger {}", s);
+}
+};
+                                let dev  = ctx.find_device("cf-ad9361-lpc").unwrap_or_else(||{
+                                        {
+                                                println!("{} {}:{} no device named cf-ad9361-lpc ", Utc::now(), file!(), line!());
+}
+                                        std::process::exit(2);
+});
+                let phy  = ctx.find_device("ad9361-phy").unwrap_or_else(||{
+                                        {
+                                                println!("{} {}:{} no device named ad9361-phy ", Utc::now(), file!(), line!());
+}
+                                        std::process::exit(2);
+});
+                                                let rf  = phy.attr_read_float("rx_path_rates");
                 {
-                    println!(
-                        "{} {}:{} couldnt open iio context ",
-                        Utc::now(),
-                        file!(),
-                        line!()
-                    );
-                }
-                std::process::exit(1);
-            });
-            let mut trigs = Vec::new();
-            for dev in ctx.devices() {
-                if dev.is_trigger() {
-                    match dev.id() {
-                        Some(id) => trigs.push(id),
-                        None => (),
-                    }
-                } else {
-                    println!(
-                        "{} [{}]: {} channels",
-                        dev.id().unwrap_or_default(),
-                        dev.name().unwrap_or_default(),
-                        dev.num_channels()
-                    );
-                }
-            }
-            if trigs.is_empty() {
+                                        println!("{} {}:{} phy  phy.num_channels()={:?}  phy.attr_read_all().unwrap()={:?}  rf={:?}", Utc::now(), file!(), line!(), phy.num_channels(), phy.attr_read_all().unwrap(), rf);
+};
+                                let mut nchan  = 0;
+                for  mut chan in dev.channels() {
+                                        if  (Some(std::any::TypeId::of::<i16>()))==(chan.type_of())  {
+                                                                        nchan += 1 ;
+                        chan.enable();
+};
+}
+                if  (0)==(nchan)  {
+                                                            {
+                                                println!("{} {}:{} no 16 bit channels found ", Utc::now(), file!(), line!());
+}
+                    std::process::exit(1);
+} else {
+                                        {
+                                                println!("{} {}:{} 16 bit channels found  nchan={:?}", Utc::now(), file!(), line!(), nchan);
+}
+};
+                                                let mut chans  = Vec::new();
+                                let mut buf  = dev.create_buffer(256, false).unwrap_or_else(| err|{
+                                        {
+                                                println!("{} {}:{} can't create buffer  err={:?}", Utc::now(), file!(), line!(), err);
+}
+                                        std::process::exit(3);
+});
+                                for  ch in dev.channels() {
+                                        chans.push(ch);
+}
+                                let mut count  = 0;
+                                {
+                                        println!("{} {}:{} sdr_reader waits for other pipeline threads ", Utc::now(), file!(), line!());
+}
+                wg.wait();
                 {
-                    println!("{} {}:{} no triggers ", Utc::now(), file!(), line!());
-                }
-            } else {
-                for s in trigs {
-                    println!("trigger {}", s);
-                }
-            };
-            let dev = ctx.find_device("cf-ad9361-lpc").unwrap_or_else(|| {
-                {
-                    println!(
-                        "{} {}:{} no device named cf-ad9361-lpc ",
-                        Utc::now(),
-                        file!(),
-                        line!()
-                    );
-                }
-                std::process::exit(2);
-            });
-            let phy = ctx.find_device("ad9361-phy").unwrap_or_else(|| {
-                {
-                    println!(
-                        "{} {}:{} no device named ad9361-phy ",
-                        Utc::now(),
-                        file!(),
-                        line!()
-                    );
-                }
-                std::process::exit(2);
-            });
-            {
-                println!(
-                    "{} {}:{} phy  phy.num_channels()={:?}  phy.attr_read_all().unwrap()={:?}",
-                    Utc::now(),
-                    file!(),
-                    line!(),
-                    phy.num_channels(),
-                    phy.attr_read_all().unwrap()
-                );
-            }
-            let mut nchan = 0;
-            for mut chan in dev.channels() {
-                if (Some(std::any::TypeId::of::<i16>())) == (chan.type_of()) {
-                    nchan += 1;
-                    chan.enable();
-                };
-            }
-            if (0) == (nchan) {
-                {
-                    println!(
-                        "{} {}:{} no 16 bit channels found ",
-                        Utc::now(),
-                        file!(),
-                        line!()
-                    );
-                }
-                std::process::exit(1);
-            } else {
-                {
-                    println!(
-                        "{} {}:{} 16 bit channels found  nchan={:?}",
-                        Utc::now(),
-                        file!(),
-                        line!(),
-                        nchan
-                    );
-                }
-            };
-            let mut chans = Vec::new();
-            let mut buf = dev.create_buffer(256, false).unwrap_or_else(|err| {
-                {
-                    println!(
-                        "{} {}:{} can't create buffer  err={:?}",
-                        Utc::now(),
-                        file!(),
-                        line!(),
-                        err
-                    );
-                }
-                std::process::exit(3);
-            });
-            for ch in dev.channels() {
-                chans.push(ch);
-            }
-            let mut count = 0;
-            {
-                println!(
-                    "{} {}:{} sdr_reader waits for other pipeline threads ",
-                    Utc::now(),
-                    file!(),
-                    line!()
-                );
-            }
-            wg.wait();
-            {
-                println!(
-                    "{} {}:{} sdr_reader loop starts ",
-                    Utc::now(),
-                    file!(),
-                    line!()
-                );
-            }
-            while (keep_running.load(std::sync::atomic::Ordering::Relaxed)) {
-                match buf.refill() {
-                    Err(err) => {
-                        {
-                            println!(
-                                "{} {}:{} error filling buffer  err={:?}",
-                                Utc::now(),
-                                file!(),
-                                line!(),
-                                err
-                            );
-                        }
-                        std::process::exit(4)
-                    }
-                    _ => (),
-                }
-                {
-                    let time_acquisition = Utc::now();
-                    let mut ha = fftin[count].clone();
-                    let mut a = &mut ha.lock().unwrap();
-                    let data_i: Vec<i16> = buf.channel_iter::<i16>(&(chans[0])).collect();
-                    let data_q: Vec<i16> = buf.channel_iter::<i16>(&(chans[1])).collect();
-                    a.timestamp = time_acquisition;
-                    for i in 0..256 {
-                        a.ptr[i] = fftw::types::c64::new((data_i[i] as f64), (data_q[i] as f64));
-                    }
-                }
-                s0.send(count).unwrap();
-                count += 1;
-                if (4) <= (count) {
-                    count = 0;
-                };
-            }
-        });
+                                        println!("{} {}:{} sdr_reader loop starts ", Utc::now(), file!(), line!());
+}
+                while (keep_running.load(std::sync::atomic::Ordering::Relaxed)) {
+                                        match buf.refill() {
+                                                Err(err) => {
+                                                {
+                                                println!("{} {}:{} error filling buffer  err={:?}", Utc::now(), file!(), line!(), err);
+}
+                                                std::process::exit(4)
+},
+                                                _ => {
+                                                ()
+},
+}
+                                        {
+                                                                        let time_acquisition  = Utc::now();
+                                                let mut ha  = fftin[count].clone();
+                        let mut a  = &mut ha.lock().unwrap();
+                                                let data_i: Vec<i16>  = buf.channel_iter::<i16>(&(chans[0])).collect();
+                        let data_q: Vec<i16>  = buf.channel_iter::<i16>(&(chans[1])).collect();
+                                                                        a.timestamp=time_acquisition;
+                        for  i in 0..256 {
+                                                                                    a.ptr[i]=fftw::types::c64::new((data_i[i] as f64), (data_q[i] as f64));
+};
+}
+                                        s0.send(count).unwrap();
+                                                            count += 1 ;
+                    if  (4)<=(count)  {
+                                                                                                count=0;
+};
+};
+});
     });
 }
