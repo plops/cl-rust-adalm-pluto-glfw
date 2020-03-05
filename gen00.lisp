@@ -210,7 +210,7 @@ panic = \"abort\"
 						     (try_iter)
 						     (collect))))
 					 (declare (type "Vec<_>" v))
-					,(logprint "gui" `((v.len) v))
+					;,(logprint "gui" `((v.len) v))
 					 (for (c v)
 					      (let ((cc c)
 						    (hb (dot (aref fftout_scaled cc)
@@ -245,7 +245,11 @@ panic = \"abort\"
 											   "*const f32")
 										   "*const c_void")
 									   )))
-					       (incf line_yoffset)))
+					       (do0
+						(incf line_yoffset)
+						(when (<= ,tex-height line_yoffset)
+						  (setf line_yoffset 0)))
+					       ))
 					 )
 				       
 				       (space unsafe
@@ -313,12 +317,13 @@ panic = \"abort\"
 
 					  
 					  (for (i (slice 0 ,n-samples))
-					       (setf (aref c i) (coerce (dot (+ (* (dot (aref b.ptr i) re)
-										   (dot (aref b.ptr i) re))
-										(* (dot (aref b.ptr i) im)
-										   (dot (aref b.ptr i) im)))
-									     (ln))
-									f32)))
+					       (setf (aref c i) (* 5e-2
+								   (coerce (dot (+ (* (dot (aref b.ptr i) re)
+										    (dot (aref b.ptr i) re))
+										 (* (dot (aref b.ptr i) im)
+										    (dot (aref b.ptr i) im)))
+									      (ln))
+									 f32))))
 
 					  (dot s2
 					       (send count)

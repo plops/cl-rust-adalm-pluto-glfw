@@ -162,16 +162,6 @@ fn main() {
             imgui.set_ini_filename(None);
             while (!(window.should_close())) {
                 let v: Vec<_> = r2.try_iter().collect();
-                {
-                    println!(
-                        "{} {}:{} gui  v.len()={:?}  v={:?}",
-                        Utc::now(),
-                        file!(),
-                        line!(),
-                        v.len(),
-                        v
-                    );
-                }
                 for c in v {
                     let cc: usize = c;
                     let hb = fftout_scaled[cc].clone();
@@ -190,6 +180,9 @@ fn main() {
                         );
                     }
                     line_yoffset += 1;
+                    if (128) <= (line_yoffset) {
+                        line_yoffset = 0;
+                    };
                 }
                 unsafe {
                     gl::Clear(((gl::COLOR_BUFFER_BIT) | (gl::DEPTH_BUFFER_BIT)));
@@ -254,8 +247,9 @@ fn main() {
                 let hb = fftout[tup].clone();
                 let b = &hb.lock().unwrap();
                 for i in 0..512 {
-                    c[i] = ((((b.ptr[i].re) * (b.ptr[i].re)) + ((b.ptr[i].im) * (b.ptr[i].im))).ln()
-                        as f32);
+                    c[i] = ((5.00e-2)
+                        * ((((b.ptr[i].re) * (b.ptr[i].re)) + ((b.ptr[i].im) * (b.ptr[i].im))).ln()
+                            as f32));
                 }
                 s2.send(count).unwrap();
                 count += 1;
