@@ -236,8 +236,16 @@ fn main() {
                             _ => im_str!("{:?}", d.0),
                         };
                         imgui::Window::new(&ui, &title).build(|| {
+                            // show device attributes
                             for (k, v) in &d.2 {
                                 ui.text(im_str!("{} {}", k, v));
+                            }
+                            // show channel attributes
+                            for (ch_idx, ch_name_, attribs) in &d.3 {
+                                ui.text(match &ch_name_ {
+                                    Some(x) => im_str!("{}", x),
+                                    _ => im_str!("{:?}", ch_idx),
+                                });
                             }
                         });
                     }

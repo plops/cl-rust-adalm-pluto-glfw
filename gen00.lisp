@@ -322,9 +322,15 @@ panic = \"abort\"
 								 ((Some x) (im_str! (string "{}") x))
 								 (t (im_str! (string "{:?}") d.0)))))
 						    (dot (imgui--Window--new &ui &title)
-							(build (lambda ()
-								 (for ((values k v) &d.2)
+							 (build (lambda ()
+								  "// show device attributes"
+								 (for ((values k v) &d.2) 
 								      (ui.text (im_str! (string "{} {}") k v)))
+								 "// show channel attributes"
+								 (for ((values ch_idx ch_name_ attribs) &d.3)
+								      (ui.text (case &ch_name_
+										 ((Some x) (im_str! (string "{}") x))
+										 (t (im_str! (string "{:?}") ch_idx)))))
 								 )))))
 					     
 					     (ui.show_demo_window "&mut true")
