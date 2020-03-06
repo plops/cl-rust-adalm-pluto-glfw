@@ -384,10 +384,15 @@ fn main() {
 }
                                         std::process::exit(2);
 });
-                                                let rf  = phy.attr_read_float("rx_path_rates");
-                {
-                                        println!("{} {}:{} phy  phy.num_channels()={:?}  phy.attr_read_all().unwrap()={:?}  rf={:?}", Utc::now(), file!(), line!(), phy.num_channels(), phy.attr_read_all().unwrap(), rf);
+                                {
+                                        println!("{} {}:{} phy  phy.name()={:?}  phy.num_channels()={:?}  phy.attr_read_all().unwrap()={:?}", Utc::now(), file!(), line!(), phy.name(), phy.num_channels(), phy.attr_read_all().unwrap());
+}
+                for  ch_idx in 0..phy.num_channels() {
+                                                            let ch  = phy.get_channel(ch_idx).unwrap();
+                    {
+                                                println!("{} {}:{} phy  ch_idx={:?}  ch.name()={:?}  ch.attr_read_all().unwrap()={:?}", Utc::now(), file!(), line!(), ch_idx, ch.name(), ch.attr_read_all().unwrap());
 };
+}
                                 let mut nchan  = 0;
                 for  mut chan in dev.channels() {
                                         if  (Some(std::any::TypeId::of::<i16>()))==(chan.type_of())  {
