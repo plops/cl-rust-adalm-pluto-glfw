@@ -45,6 +45,13 @@ calib_mode_available
 dcxo_tune_coarse
 dcxo_tune_coarse_available
 
+- we have 5 devices
+- each device has a few channels
+- each device has attributes
+- each channel has attributes
+- each device has a name
+- some channels have names
+
 
 * References:
 
