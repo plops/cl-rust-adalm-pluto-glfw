@@ -133,7 +133,7 @@ panic = \"abort\"
 		   
 		    ((values s1 r1) (crossbeam_channel--bounded ,n-buf)) ;; fft_processor -> fft_scaler
 		    ((values s2 r2) (crossbeam_channel--bounded ,n-buf-out)) ;; fft_scaler -> gui/opengl
-		    ((values s_controls r_controls) (crossbeam_channel--bounded 1)) ;; sdr_receiver -> gui
+		    ((values s_controls r_controls) (crossbeam_channel--unbounded)) ;; sdr_receiver -> gui
 		    
 		    ) 
 		"// pipeline storage:"
@@ -232,132 +232,140 @@ panic = \"abort\"
 					  (buffer_fill 0s0))
 				     (imgui.set_ini_filename None)
 				     
-				     (let ((devices (dot r_controls
-							 (recv)
-							 (ok)
-							 (unwrap))))
-				       (declare (type "Vec<(usize, Option<String>, HashMap<String, String, RandomState>, Vec<(usize, Option<String>, HashMap<String, String, RandomState>)>)>" devices))
-				       
-				       (while (not (window.should_close))
-					 
+				     (do0 ;let
+				      #+nil ((devices (dot r_controls
+						     (recv)
+						     (ok)
+						     (unwrap))))
+				      #+nil (declare (type "Vec<(usize, Option<String>, HashMap<String, String, RandomState>, Vec<(usize, Option<String>, HashMap<String, String, RandomState>)>)>" devices))
+				      
+				      (while (not (window.should_close))
+					
 
-					 (let ((v (dot r2
-						       (try_iter)
-						       (collect))))
-					   (declare (type "Vec<_>" v))
-					   (setf buffer_fill (/ (* 100s0 (coerce (v.len) f32))
-								,(* 1s0 n-buf-out)))
-					   #+nil ,(logprint "gui" `((v.len) ;v
-								    ))
-					   "// each response received on r2 is a line that will be written into the texture"
-					   ,(format nil "// v.len() should never become ~a this would mean that the s2 channel is full and back pressure would lead to dropped lines. if v.len()" n-buf-out)
-					   (for (c v)
-						(let ((cc c)
-						      (hb (dot (aref fftout_scaled cc)
-							       (clone)))
-						      (b (space "&" (dot hb
-									 (lock)
-									 (unwrap)))))
-						  (declare
-						   (type usize cc)
+					(let ((v (dot r2
+						      (try_iter)
+						      (collect))))
+					  (declare (type "Vec<_>" v))
+					  (setf buffer_fill (/ (* 100s0 (coerce (v.len) f32))
+							       ,(* 1s0 n-buf-out)))
+					  #+nil ,(logprint "gui" `((v.len) ;v
+								   ))
+					  "// each response received on r2 is a line that will be written into the texture"
+					  ,(format nil "// v.len() should never become ~a this would mean that the s2 channel is full and back pressure would lead to dropped lines. if v.len()" n-buf-out)
+					  (for (c v)
+					       (let ((cc c)
+						     (hb (dot (aref fftout_scaled cc)
+							      (clone)))
+						     (b (space "&" (dot hb
+									(lock)
+									(unwrap)))))
+						 (declare
+						  (type usize cc)
 					;(type ,(format nil "Mutex<[f32;~a]>" n-samples) hb)
-						   )
-						  (space unsafe
-							 (progn
-							   (gl--TexSubImage2D ;:target
-							    gl--TEXTURE_2D
+						  )
+						 (space unsafe
+							(progn
+							  (gl--TexSubImage2D ;:target
+							   gl--TEXTURE_2D
 					;:level
-							    0
+							   0
 					;:xoffset
-							    0
+							   0
 					;:yoffset
-							    line_yoffset
+							   line_yoffset
 					;:width
-							    ,tex-width
+							   ,tex-width
 					;:height
-							    1
+							   1
 					;:format
-							    gl--RED
+							   gl--RED
 					;:type_
-							    gl--FLOAT
+							   gl--FLOAT
 					;:pixels
-							    (coerce (coerce (ref (aref b 0))
-									    "*const f32")
-								    "*const c_void")
-							    )))
-						  (do0
-						   (incf line_yoffset)
-						   (when (<= ,tex-height line_yoffset)
-						     (setf line_yoffset 0)))
-						  ))
-					   )
-					 
-					 (space unsafe
-						(progn
-						  (gl--Clear
-						   (logior gl--COLOR_BUFFER_BIT
-							   gl--DEPTH_BUFFER_BIT))))
-					 (progn
-					   (let ((ui (imgui_glfw.frame "&mut window"
-								       "&mut imgui")))
-					     (ui.show_metrics_window "&mut true")
-					     (dot (imgui--Window--new &ui (im_str! (string "waterfall fft") ))
-						  (build (lambda ()
+							   (coerce (coerce (ref (aref b 0))
+									   "*const f32")
+								   "*const c_void")
+							   )))
+						 (do0
+						  (incf line_yoffset)
+						  (when (<= ,tex-height line_yoffset)
+						    (setf line_yoffset 0)))
+						 ))
+					  )
+					
+					(space unsafe
+					       (progn
+						 (gl--Clear
+						  (logior gl--COLOR_BUFFER_BIT
+							  gl--DEPTH_BUFFER_BIT))))
+					(progn
+					  (let ((ui (imgui_glfw.frame "&mut window"
+								      "&mut imgui")))
+					    (ui.show_metrics_window "&mut true")
+					    (dot (imgui--Window--new &ui (im_str! (string "waterfall fft") ))
+						 (build (lambda ()
 					;(ui.text (string "bla2"))
-							   (ui.text (im_str! (string "buffer_fill={:?}%" ) buffer_fill))
-							   (dot (ui.image texture_id (list ,(* 1s0 tex-width)
-											   ,(* 1s0 tex-height)))
-								(build))
-							   #+ni (let* ((current_item 0)
-								  (items (list (im_str! (string "combo_a"))
-									       (im_str! (string "combo_b"))
-									       (im_str! (string "combo_c")))))
-							     (ui.combo (im_str! (string "combo"))
-								       "&mut current_item"
-								       &items
-								       8
-								       )))))
-					     (for (d &devices)
-						  (let ((title (case &d.1
-								 ((Some x) (im_str! (string "{}") x))
-								 (t (im_str! (string "{:?}") d.0)))))
-						    (dot (imgui--Window--new &ui &title)
-							 (build (lambda ()
-								  "// show device attributes"
-								 (for ((values k v) &d.2) 
-								      (ui.text (im_str! (string "{}={}") k v)))
-								 "// show channel attributes"
-								 (for ((values ch_idx ch_name_ attribs) &d.3)
+							  (ui.text (im_str! (string "buffer_fill={:?}%" ) buffer_fill))
+							  (dot (ui.image texture_id (list ,(* 1s0 tex-width)
+											  ,(* 1s0 tex-height)))
+							       (build))
+							  #+ni (let* ((current_item 0)
+								      (items (list (im_str! (string "combo_a"))
+										   (im_str! (string "combo_b"))
+										   (im_str! (string "combo_c")))))
+								 (ui.combo (im_str! (string "combo"))
+									   "&mut current_item"
+									   &items
+									   8
+									   )))))
+
+					    (let
+						((all_devices (dot r_controls
+							       (try_iter)
+							       (collect))))
+				      (declare (type "Vec<Vec<(usize, Option<String>, HashMap<String, String, RandomState>, Vec<(usize, Option<String>, HashMap<String, String, RandomState>)>)>>" all_devices))
+				      (let ((devices (aref &all_devices (- (all_devices.len) 1))))
+				       (for (d devices)
+					    (let ((title (case &d.1
+							   ((Some x) (im_str! (string "{}") x))
+							   (t (im_str! (string "{:?}") d.0)))))
+					      (dot (imgui--Window--new &ui &title)
+						   (build (lambda ()
+							    "// show device attributes"
+							    (for ((values k v) &d.2) 
+								 (ui.text (im_str! (string "{}={}") k v)))
+							    "// show channel attributes"
+							    (for ((values ch_idx ch_name_ attribs) &d.3)
 								      
-								      (ui.text (case &ch_name_
-										 ((Some x) (im_str! (string "{}") x))
-										 (t (im_str! (string "{:?}") ch_idx))))
-								      (for ((values k v) attribs)
-									   (ui.text (im_str! (string "{}={}")  k v)))
-								      (ui.separator))
-								 )))))
-					     
-					     (ui.show_demo_window "&mut true")
-					     (imgui_glfw.draw ui "&mut window")))
-					 (window.swap_buffers)
-					 (glfw.poll_events)
-					 (for ((values _ event)
-					       (glfw--flush_messages &events))
+								 (ui.text (case &ch_name_
+									    ((Some x) (im_str! (string "{}") x))
+									    (t (im_str! (string "{:?}") ch_idx))))
+								 (for ((values k v) attribs)
+								      (ui.text (im_str! (string "{}={}")  k v)))
+								 (ui.separator))
+							    )))))))
+					    
+					    (ui.show_demo_window "&mut true")
+					    (imgui_glfw.draw ui "&mut window")))
+					(window.swap_buffers)
+					(glfw.poll_events)
+					(for ((values _ event)
+					      (glfw--flush_messages &events))
 					;,(logprint "event" `(event))
-					      (imgui_glfw.handle_event
-					       "&mut imgui"
-					       &event)
-					      (case event
-						((glfw--WindowEvent--Key
-						  Key--Escape
-						  _
-						  Action--Press
-						  _)
-						 (progn
-						   ,(logprint "gui wants to quit, notify all threads" `())
-						   (dot keep_running (swap false std--sync--atomic--Ordering--Relaxed))
-						   (window.set_should_close true)))
-						(t "{}")))))))))
+					     (imgui_glfw.handle_event
+					      "&mut imgui"
+					      &event)
+					     (case event
+					       ((glfw--WindowEvent--Key
+						 Key--Escape
+						 _
+						 Action--Press
+						 _)
+						(progn
+						  ,(logprint "gui wants to quit, notify all threads" `())
+						  (dot keep_running (swap false std--sync--atomic--Ordering--Relaxed))
+						  (window.set_should_close true)))
+					       (t "{}")))))))))
 			      (fft_scaler
 			       (do0
 				(do0 ;let ((wg (wait_group_pipeline_setup.clone)))
@@ -506,49 +514,7 @@ panic = \"abort\"
 							       ,(logprint (format nil "no device named ~a" name) `())
 							       (std--process--exit 2)))))))
 
-				    (do0
-				     ;; https://wiki.analog.com/resources/tools-software/linux-drivers/iio-transceiver/ad9361#list_chosen_rx_path_rates
-				     (let* ((devices (Vec--new)))
-				      (for (dev_idx (slice 0 (ctx.num_devices)))
-					   (let ((dev (dot ctx (get_device dev_idx) (unwrap))))
-					     ,(logprint "device" `((dev.name)
-								   (dev.num_channels)
-								   (dot dev (attr_read_all)
-									(unwrap))))
-					     (let* ((channels (Vec--new)))
-					      (for (ch_idx (slice 0 (dev.num_channels)))
-						   (let ((ch (dot dev (get_channel ch_idx)
-								  (unwrap))))
-						     ,(logprint "device-channel" `(ch_idx
-										   (ch.name)
-										   (dot ch (attr_read_all)
-											(unwrap))))
-						     (channels.push (values ch_idx
-									    (ch.name)
-									    (dot ch (attr_read_all) (unwrap))))))
-					      (devices.push (values dev_idx
-								    (dev.name)
-								    (dot dev (attr_read_all)
-									 (unwrap))
-								    channels)))
-					     ))
-				      (dot s_controls
-					   (send (dot devices (clone)))
-					   (unwrap)))
-
-				     ;; 2879999 R1:61439999 RF:30719999 RXSAMP:30719999", "dcxo_tune_coarse_available": "[0 0 0]", "trx_rate_governor_available": "nominal highest_osr", "rssi_gain_step_error": "lna_error: 0 0 0 0\nmixer_error: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0\ngain_step_calib_reg_val: 0 0 0 0 0", "xo_correction": "40000035", "ensm_mode_available": "sleep wait alert fdd pinctrl pinctrl_fdd_indep", "calib_mode": "auto", "filter_fir_config": "FIR Rx: 0,0 Tx: 0,0", "gain_table_config": "<gaintable AD9361 type=FULL dest=3 start=1300000000 end=4000000000>\n-3, 8, 0x20 ... 0x20\n</gaintable>\n", "xo_correction_available": "[39992035 1 40008035]", "ensm_mode": "fdd", "trx_rate_governor": "nominal", "dcxo_tune_fine_available": "[0 0 0]", "calib_mode_available": "auto manual manual_tx_quad tx_quad rf_dc_offs rssi_gain_step", "tx_path_rates": "BBPLL:983039999 DAC:122879999 T2:122879999 T1:61439999 TF:30719999 TXSAMP:30719999"}
-;2020-03-06 06:14:06.128808954 UTC src/main.rs:393 phy  ch_idx=0  ch.name()=Some("TX_LO")  ch.attr_read_all().unwrap()={"powerdown": "0", "frequency_available": "[46875001 1 6000000000]", "fastlock_save": "0 71,111,71,223,71,71,71,206,199,71,111,239,71,87,223,71", "external": "0", "fastlock_load": "0", "fastlock_store": "0", "frequency": "2449999998"}
-;2020-03-06 06:14:06.131078866 UTC src/main.rs:393 phy  ch_idx=1  ch.name()=None  ch.attr_read_all().unwrap()={"hardwaregain_available": "[-1 1 73]", "sampling_frequency_available": "[2083333 1 61440000]", "gain_control_mode_available": "manual fast_attack slow_attack hybrid", "rssi": "113.00 dB", "gain_control_mode": "slow_attack", "rf_port_select": "A_BALANCED", "rf_bandwidth": "18000000", "quadrature_tracking_en": "1", "filter_fir_en": "0", "hardwaregain": "73.000000 dB", "rf_dc_offset_tracking_en": "1", "bb_dc_offset_tracking_en": "1", "rf_port_select_available": "A_BALANCED B_BALANCED C_BALANCED A_N A_P B_N B_P C_N C_P TX_MONITOR1 TX_MONITOR2 TX_MONITOR1_2", "rf_bandwidth_available": "[200000 1 56000000]", "sampling_frequency": "30719998"}
-;2020-03-06 06:14:06.133039171 UTC src/main.rs:393 phy  ch_idx=2  ch.name()=None  ch.attr_read_all().unwrap()={"filter_fir_en": "0", "rf_bandwidth_available": "[200000 1 40000000]", "scale": "1.000000", "rf_port_select_available": "A B", "sampling_frequency": "30719998", "sampling_frequency_available": "[2083333 1 61440000]", "rf_bandwidth": "20000000", "raw": "306"}
-;2020-03-06 06:14:06.134171857 UTC src/main.rs:393 phy  ch_idx=3  ch.name()=Some("RX_LO")  ch.attr_read_all().unwrap()={"fastlock_store": "0", "external": "0", "frequency": "93500000", "fastlock_save": "0 38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38", "powerdown": "0", "fastlock_load": "0", "frequency_available": "[70000000 1 6000000000]"}
-;2020-03-06 06:14:06.136471451 UTC src/main.rs:393 phy  ch_idx=4  ch.name()=None  ch.attr_read_all().unwrap()={"rf_port_select_available": "A B", "rf_bandwidth": "20000000", "scale": "1.000000", "sampling_frequency": "30719998", "raw": "306", "sampling_frequency_available": "[2083333 1 61440000]", "rf_bandwidth_available": "[200000 1 40000000]", "filter_fir_en": "0"}
-;2020-03-06 06:14:06.137712879 UTC src/main.rs:393 phy  ch_idx=5  ch.name()=None  ch.attr_read_all().unwrap()={"input": "37719"}
-;2020-03-06 06:14:06.138285019 UTC src/main.rs:393 phy  ch_idx=6  ch.name()=None  ch.attr_read_all().unwrap()={"filter_fir_en": "0", "rf_bandwidth": "20000000", "rssi": "0.00 dB", "hardwaregain_available": "[-89.750000 0.250000 0.000000]", "rf_bandwidth_available": "[200000 1 40000000]", "sampling_frequency_available": "[2083333 1 61440000]", "rf_port_select_available": "A B", "hardwaregain": "-10.000000 dB", "sampling_frequency": "30719998", "rf_port_select": "A"}
-;2020-03-06 06:14:06.139683311 UTC src/main.rs:393 phy  ch_idx=7  ch.name()=None  ch.attr_read_all().unwrap()={"rf_dc_offset_tracking_en": "1", "scale": "0.305250", "quadrature_tracking_en": "1", "rf_bandwidth": "18000000", "sampling_frequency_available": "[2083333 1 61440000]", "filter_fir_en": "0", "raw": "835", "offset": "57", "bb_dc_offset_tracking_en": "1", "gain_control_mode_available": "manual fast_attack slow_attack hybrid", "sampling_frequency": "30719998", "rf_bandwidth_available": "[200000 1 56000000]", "rf_port_select_available": "A_BALANCED B_BALANCED C_BALANCED A_N A_P B_N B_P C_N C_P TX_MONITOR1 TX_MONITOR2 TX_MONITOR1_2"}
-;2020-03-06 06:14:06.141406366 UTC src/main.rs:393 phy  ch_idx=8  ch.name()=None  ch.attr_read_all().unwrap()={"voltage_filter_fir_en": "0"}
-
-				     
-				     )
+				    
 
 				    
 				    
@@ -582,8 +548,57 @@ panic = \"abort\"
 					     ,(logprint "sdr_reader waits for other pipeline threads" `())
 					     (wg.wait)
 					     )
+					    
+
+					    
 					    ,(logprint "sdr_reader loop starts" `())
 					    (while (dot keep_running (load std--sync--atomic--Ordering--Relaxed)) 
+
+					      (do0
+				     ;; https://wiki.analog.com/resources/tools-software/linux-drivers/iio-transceiver/ad9361#list_chosen_rx_path_rates
+				     (let* ((devices (Vec--new)))
+				      (for (dev_idx (slice 0 (ctx.num_devices)))
+					   (let ((dev (dot ctx (get_device dev_idx) (unwrap))))
+					     #+nil ,(logprint "device" `((dev.name)
+								   (dev.num_channels)
+								   (dot dev (attr_read_all)
+									(unwrap))))
+					     (let* ((channels (Vec--new)))
+					      (for (ch_idx (slice 0 (dev.num_channels)))
+						   (let ((ch (dot dev (get_channel ch_idx)
+								  (unwrap))))
+						     #+nil ,(logprint "device-channel" `(ch_idx
+										   (ch.name)
+										   (dot ch (attr_read_all)
+											(unwrap))))
+						     (channels.push (values ch_idx
+									    (ch.name)
+									    (dot ch (attr_read_all) (unwrap))))))
+					      (devices.push (values dev_idx
+								    (dev.name)
+								    (dot dev (attr_read_all)
+									 (unwrap))
+								    channels)))
+					     ))
+				      (dot s_controls
+					   (send (dot devices (clone)))
+					   (unwrap)))
+
+				     ;; 2879999 R1:61439999 RF:30719999 RXSAMP:30719999", "dcxo_tune_coarse_available": "[0 0 0]", "trx_rate_governor_available": "nominal highest_osr", "rssi_gain_step_error": "lna_error: 0 0 0 0\nmixer_error: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0\ngain_step_calib_reg_val: 0 0 0 0 0", "xo_correction": "40000035", "ensm_mode_available": "sleep wait alert fdd pinctrl pinctrl_fdd_indep", "calib_mode": "auto", "filter_fir_config": "FIR Rx: 0,0 Tx: 0,0", "gain_table_config": "<gaintable AD9361 type=FULL dest=3 start=1300000000 end=4000000000>\n-3, 8, 0x20 ... 0x20\n</gaintable>\n", "xo_correction_available": "[39992035 1 40008035]", "ensm_mode": "fdd", "trx_rate_governor": "nominal", "dcxo_tune_fine_available": "[0 0 0]", "calib_mode_available": "auto manual manual_tx_quad tx_quad rf_dc_offs rssi_gain_step", "tx_path_rates": "BBPLL:983039999 DAC:122879999 T2:122879999 T1:61439999 TF:30719999 TXSAMP:30719999"}
+;2020-03-06 06:14:06.128808954 UTC src/main.rs:393 phy  ch_idx=0  ch.name()=Some("TX_LO")  ch.attr_read_all().unwrap()={"powerdown": "0", "frequency_available": "[46875001 1 6000000000]", "fastlock_save": "0 71,111,71,223,71,71,71,206,199,71,111,239,71,87,223,71", "external": "0", "fastlock_load": "0", "fastlock_store": "0", "frequency": "2449999998"}
+;2020-03-06 06:14:06.131078866 UTC src/main.rs:393 phy  ch_idx=1  ch.name()=None  ch.attr_read_all().unwrap()={"hardwaregain_available": "[-1 1 73]", "sampling_frequency_available": "[2083333 1 61440000]", "gain_control_mode_available": "manual fast_attack slow_attack hybrid", "rssi": "113.00 dB", "gain_control_mode": "slow_attack", "rf_port_select": "A_BALANCED", "rf_bandwidth": "18000000", "quadrature_tracking_en": "1", "filter_fir_en": "0", "hardwaregain": "73.000000 dB", "rf_dc_offset_tracking_en": "1", "bb_dc_offset_tracking_en": "1", "rf_port_select_available": "A_BALANCED B_BALANCED C_BALANCED A_N A_P B_N B_P C_N C_P TX_MONITOR1 TX_MONITOR2 TX_MONITOR1_2", "rf_bandwidth_available": "[200000 1 56000000]", "sampling_frequency": "30719998"}
+;2020-03-06 06:14:06.133039171 UTC src/main.rs:393 phy  ch_idx=2  ch.name()=None  ch.attr_read_all().unwrap()={"filter_fir_en": "0", "rf_bandwidth_available": "[200000 1 40000000]", "scale": "1.000000", "rf_port_select_available": "A B", "sampling_frequency": "30719998", "sampling_frequency_available": "[2083333 1 61440000]", "rf_bandwidth": "20000000", "raw": "306"}
+;2020-03-06 06:14:06.134171857 UTC src/main.rs:393 phy  ch_idx=3  ch.name()=Some("RX_LO")  ch.attr_read_all().unwrap()={"fastlock_store": "0", "external": "0", "frequency": "93500000", "fastlock_save": "0 38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38", "powerdown": "0", "fastlock_load": "0", "frequency_available": "[70000000 1 6000000000]"}
+;2020-03-06 06:14:06.136471451 UTC src/main.rs:393 phy  ch_idx=4  ch.name()=None  ch.attr_read_all().unwrap()={"rf_port_select_available": "A B", "rf_bandwidth": "20000000", "scale": "1.000000", "sampling_frequency": "30719998", "raw": "306", "sampling_frequency_available": "[2083333 1 61440000]", "rf_bandwidth_available": "[200000 1 40000000]", "filter_fir_en": "0"}
+;2020-03-06 06:14:06.137712879 UTC src/main.rs:393 phy  ch_idx=5  ch.name()=None  ch.attr_read_all().unwrap()={"input": "37719"}
+;2020-03-06 06:14:06.138285019 UTC src/main.rs:393 phy  ch_idx=6  ch.name()=None  ch.attr_read_all().unwrap()={"filter_fir_en": "0", "rf_bandwidth": "20000000", "rssi": "0.00 dB", "hardwaregain_available": "[-89.750000 0.250000 0.000000]", "rf_bandwidth_available": "[200000 1 40000000]", "sampling_frequency_available": "[2083333 1 61440000]", "rf_port_select_available": "A B", "hardwaregain": "-10.000000 dB", "sampling_frequency": "30719998", "rf_port_select": "A"}
+;2020-03-06 06:14:06.139683311 UTC src/main.rs:393 phy  ch_idx=7  ch.name()=None  ch.attr_read_all().unwrap()={"rf_dc_offset_tracking_en": "1", "scale": "0.305250", "quadrature_tracking_en": "1", "rf_bandwidth": "18000000", "sampling_frequency_available": "[2083333 1 61440000]", "filter_fir_en": "0", "raw": "835", "offset": "57", "bb_dc_offset_tracking_en": "1", "gain_control_mode_available": "manual fast_attack slow_attack hybrid", "sampling_frequency": "30719998", "rf_bandwidth_available": "[200000 1 56000000]", "rf_port_select_available": "A_BALANCED B_BALANCED C_BALANCED A_N A_P B_N B_P C_N C_P TX_MONITOR1 TX_MONITOR2 TX_MONITOR1_2"}
+;2020-03-06 06:14:06.141406366 UTC src/main.rs:393 phy  ch_idx=8  ch.name()=None  ch.attr_read_all().unwrap()={"voltage_filter_fir_en": "0"}
+
+				     
+				     )
+
+
 					      (case (buf.refill)
 						((Err err)
 						 ,(logprint "error filling buffer" `(err))

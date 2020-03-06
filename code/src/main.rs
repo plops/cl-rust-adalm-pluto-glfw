@@ -44,7 +44,7 @@ fn main() {
     let barrier_pipeline_setup = std::sync::Arc::new(std::sync::Barrier::new(3));
     let (s1, r1) = crossbeam_channel::bounded(4);
     let (s2, r2) = crossbeam_channel::bounded(40);
-    let (s_controls, r_controls) = crossbeam_channel::bounded(1);
+    let (s_controls, r_controls) = crossbeam_channel::unbounded();
     // pipeline storage:
     // fftin is filled by sdr_receiver thread and consumed by fft_processor thread
     // fftout is filled by fft_processor and consumed by fft_scaler
@@ -187,12 +187,6 @@ fn main() {
             let mut line_yoffset = 0;
             let mut buffer_fill = 0.;
             imgui.set_ini_filename(None);
-            let devices: Vec<(
-                usize,
-                Option<String>,
-                HashMap<String, String, RandomState>,
-                Vec<(usize, Option<String>, HashMap<String, String, RandomState>)>,
-            )> = r_controls.recv().ok().unwrap();
             while (!(window.should_close())) {
                 let v: Vec<_> = r2.try_iter().collect();
                 buffer_fill = (((1.00e+2) * (v.len() as f32)) / (40.));
@@ -230,7 +224,16 @@ fn main() {
                         ui.text(im_str!("buffer_fill={:?}%", buffer_fill));
                         ui.image(texture_id, [256., 512.]).build();
                     });
-                    for d in &devices {
+                    let all_devices: Vec<
+                        Vec<(
+                            usize,
+                            Option<String>,
+                            HashMap<String, String, RandomState>,
+                            Vec<(usize, Option<String>, HashMap<String, String, RandomState>)>,
+                        )>,
+                    > = r_controls.try_iter().collect();
+                    let devices = &all_devices[(all_devices.len() - 1)];
+                    for d in devices {
                         let title = match &d.1 {
                             Some(x) => im_str!("{}", x),
                             _ => im_str!("{:?}", d.0),
@@ -369,136 +372,177 @@ fn main() {
                 s1.send(tup).unwrap();
             }
         });
-        scope.builder().name("sdr_reader".into()).spawn(| _|{
-                                                let wg  = barrier_pipeline_setup.clone();
-                                // i start my linux with the kernel parameter isolcpus=0,1
-                // the sdr_reader thread is the only process in this core
-                // i'm not sure if that helps at all against underflow. perhaps the usb communication is handled in the kernel which will then run on slightly busier cores
-                // i keep it in in case i ever get this program compiled for the embedded arm processor on the zynq in the pluto
-                core_affinity::set_for_current(core_affinity::CoreId {id: 0});
-                                let ctx  = iio::Context::create_network("192.168.2.1").unwrap_or_else(| err_|{
-                                        {
-                                                println!("{} {}:{} couldnt open iio context ", Utc::now(), file!(), line!());
-}
-                                        std::process::exit(1);
-});
-                                let mut trigs  = Vec::new();
-                for  dev in ctx.devices() {
-                                        if  dev.is_trigger()  {
-                                                match dev.id() {
-                                                        Some(id) => {
-                                                        trigs.push(id)
-},
-                                                        None => {
-                                                        ()
-},
-}
-} else {
-                                                println!("{} [{}]: {} channels", dev.id().unwrap_or_default(), dev.name().unwrap_or_default(), dev.num_channels());
-}
-}
-                if  trigs.is_empty()  {
-                                        {
-                                                println!("{} {}:{} no triggers ", Utc::now(), file!(), line!());
-}
-} else {
-                                        for  s in trigs {
-                                                println!("trigger {}", s);
-}
-};
-                                let dev  = ctx.find_device("cf-ad9361-lpc").unwrap_or_else(||{
-                                        {
-                                                println!("{} {}:{} no device named cf-ad9361-lpc ", Utc::now(), file!(), line!());
-}
-                                        std::process::exit(2);
-});
-                let phy  = ctx.find_device("ad9361-phy").unwrap_or_else(||{
-                                        {
-                                                println!("{} {}:{} no device named ad9361-phy ", Utc::now(), file!(), line!());
-}
-                                        std::process::exit(2);
-});
-                                                let mut devices  = Vec::new();
-                for  dev_idx in 0..ctx.num_devices() {
-                                                            let dev  = ctx.get_device(dev_idx).unwrap();
-                    {
-                                                println!("{} {}:{} device  dev.name()={:?}  dev.num_channels()={:?}  dev.attr_read_all().unwrap()={:?}", Utc::now(), file!(), line!(), dev.name(), dev.num_channels(), dev.attr_read_all().unwrap());
-}
-                                        let mut channels  = Vec::new();
-                    for  ch_idx in 0..dev.num_channels() {
-                                                                        let ch  = dev.get_channel(ch_idx).unwrap();
-                        {
-                                                        println!("{} {}:{} device-channel  ch_idx={:?}  ch.name()={:?}  ch.attr_read_all().unwrap()={:?}", Utc::now(), file!(), line!(), ch_idx, ch.name(), ch.attr_read_all().unwrap());
-}
-                        channels.push((ch_idx, ch.name(), ch.attr_read_all().unwrap()));
-}
-                    devices.push((dev_idx, dev.name(), dev.attr_read_all().unwrap(), channels));
-}
-                s_controls.send(devices.clone()).unwrap();
-                                let mut nchan  = 0;
-                for  mut chan in dev.channels() {
-                                        if  (Some(std::any::TypeId::of::<i16>()))==(chan.type_of())  {
-                                                                        nchan += 1 ;
-                        chan.enable();
-};
-}
-                if  (0)==(nchan)  {
-                                                            {
-                                                println!("{} {}:{} no 16 bit channels found ", Utc::now(), file!(), line!());
-}
-                    std::process::exit(1);
-} else {
-                                        {
-                                                println!("{} {}:{} 16 bit channels found  nchan={:?}", Utc::now(), file!(), line!(), nchan);
-}
-};
-                                                let mut chans  = Vec::new();
-                                let mut buf  = dev.create_buffer(256, false).unwrap_or_else(| err|{
-                                        {
-                                                println!("{} {}:{} can't create buffer  err={:?}", Utc::now(), file!(), line!(), err);
-}
-                                        std::process::exit(3);
-});
-                                for  ch in dev.channels() {
-                                        chans.push(ch);
-}
-                                let mut count  = 0;
-                                {
-                                        println!("{} {}:{} sdr_reader waits for other pipeline threads ", Utc::now(), file!(), line!());
-}
-                wg.wait();
+        scope.builder().name("sdr_reader".into()).spawn(|_| {
+            let wg = barrier_pipeline_setup.clone();
+            // i start my linux with the kernel parameter isolcpus=0,1
+            // the sdr_reader thread is the only process in this core
+            // i'm not sure if that helps at all against underflow. perhaps the usb communication is handled in the kernel which will then run on slightly busier cores
+            // i keep it in in case i ever get this program compiled for the embedded arm processor on the zynq in the pluto
+            core_affinity::set_for_current(core_affinity::CoreId { id: 0 });
+            let ctx = iio::Context::create_network("192.168.2.1").unwrap_or_else(|err_| {
                 {
-                                        println!("{} {}:{} sdr_reader loop starts ", Utc::now(), file!(), line!());
-}
-                while (keep_running.load(std::sync::atomic::Ordering::Relaxed)) {
-                                        match buf.refill() {
-                                                Err(err) => {
-                                                {
-                                                println!("{} {}:{} error filling buffer  err={:?}", Utc::now(), file!(), line!(), err);
-}
-                                                std::process::exit(4)
-},
-                                                _ => {
-                                                ()
-},
-}
-                                        {
-                                                                        let time_acquisition  = Utc::now();
-                                                let mut ha  = fftin[count].clone();
-                        let mut a  = &mut ha.lock().unwrap();
-                                                let data_i: Vec<i16>  = buf.channel_iter::<i16>(&(chans[0])).collect();
-                        let data_q: Vec<i16>  = buf.channel_iter::<i16>(&(chans[1])).collect();
-                                                                        a.timestamp=time_acquisition;
-                        for  i in 0..256 {
-                                                                                    a.ptr[i]=fftw::types::c64::new((data_i[i] as f64), (data_q[i] as f64));
-};
-}
-                                        s0.send(count).unwrap();
-                                                            count += 1 ;
-                    if  (4)<=(count)  {
-                                                                                                count=0;
-};
-};
-});
+                    println!(
+                        "{} {}:{} couldnt open iio context ",
+                        Utc::now(),
+                        file!(),
+                        line!()
+                    );
+                }
+                std::process::exit(1);
+            });
+            let mut trigs = Vec::new();
+            for dev in ctx.devices() {
+                if dev.is_trigger() {
+                    match dev.id() {
+                        Some(id) => trigs.push(id),
+                        None => (),
+                    }
+                } else {
+                    println!(
+                        "{} [{}]: {} channels",
+                        dev.id().unwrap_or_default(),
+                        dev.name().unwrap_or_default(),
+                        dev.num_channels()
+                    );
+                }
+            }
+            if trigs.is_empty() {
+                {
+                    println!("{} {}:{} no triggers ", Utc::now(), file!(), line!());
+                }
+            } else {
+                for s in trigs {
+                    println!("trigger {}", s);
+                }
+            };
+            let dev = ctx.find_device("cf-ad9361-lpc").unwrap_or_else(|| {
+                {
+                    println!(
+                        "{} {}:{} no device named cf-ad9361-lpc ",
+                        Utc::now(),
+                        file!(),
+                        line!()
+                    );
+                }
+                std::process::exit(2);
+            });
+            let phy = ctx.find_device("ad9361-phy").unwrap_or_else(|| {
+                {
+                    println!(
+                        "{} {}:{} no device named ad9361-phy ",
+                        Utc::now(),
+                        file!(),
+                        line!()
+                    );
+                }
+                std::process::exit(2);
+            });
+            let mut nchan = 0;
+            for mut chan in dev.channels() {
+                if (Some(std::any::TypeId::of::<i16>())) == (chan.type_of()) {
+                    nchan += 1;
+                    chan.enable();
+                };
+            }
+            if (0) == (nchan) {
+                {
+                    println!(
+                        "{} {}:{} no 16 bit channels found ",
+                        Utc::now(),
+                        file!(),
+                        line!()
+                    );
+                }
+                std::process::exit(1);
+            } else {
+                {
+                    println!(
+                        "{} {}:{} 16 bit channels found  nchan={:?}",
+                        Utc::now(),
+                        file!(),
+                        line!(),
+                        nchan
+                    );
+                }
+            };
+            let mut chans = Vec::new();
+            let mut buf = dev.create_buffer(256, false).unwrap_or_else(|err| {
+                {
+                    println!(
+                        "{} {}:{} can't create buffer  err={:?}",
+                        Utc::now(),
+                        file!(),
+                        line!(),
+                        err
+                    );
+                }
+                std::process::exit(3);
+            });
+            for ch in dev.channels() {
+                chans.push(ch);
+            }
+            let mut count = 0;
+            {
+                println!(
+                    "{} {}:{} sdr_reader waits for other pipeline threads ",
+                    Utc::now(),
+                    file!(),
+                    line!()
+                );
+            }
+            wg.wait();
+            {
+                println!(
+                    "{} {}:{} sdr_reader loop starts ",
+                    Utc::now(),
+                    file!(),
+                    line!()
+                );
+            }
+            while (keep_running.load(std::sync::atomic::Ordering::Relaxed)) {
+                let mut devices = Vec::new();
+                for dev_idx in 0..ctx.num_devices() {
+                    let dev = ctx.get_device(dev_idx).unwrap();
+                    let mut channels = Vec::new();
+                    for ch_idx in 0..dev.num_channels() {
+                        let ch = dev.get_channel(ch_idx).unwrap();
+                        channels.push((ch_idx, ch.name(), ch.attr_read_all().unwrap()));
+                    }
+                    devices.push((dev_idx, dev.name(), dev.attr_read_all().unwrap(), channels));
+                }
+                s_controls.send(devices.clone()).unwrap();
+                match buf.refill() {
+                    Err(err) => {
+                        {
+                            println!(
+                                "{} {}:{} error filling buffer  err={:?}",
+                                Utc::now(),
+                                file!(),
+                                line!(),
+                                err
+                            );
+                        }
+                        std::process::exit(4)
+                    }
+                    _ => (),
+                }
+                {
+                    let time_acquisition = Utc::now();
+                    let mut ha = fftin[count].clone();
+                    let mut a = &mut ha.lock().unwrap();
+                    let data_i: Vec<i16> = buf.channel_iter::<i16>(&(chans[0])).collect();
+                    let data_q: Vec<i16> = buf.channel_iter::<i16>(&(chans[1])).collect();
+                    a.timestamp = time_acquisition;
+                    for i in 0..256 {
+                        a.ptr[i] = fftw::types::c64::new((data_i[i] as f64), (data_q[i] as f64));
+                    }
+                }
+                s0.send(count).unwrap();
+                count += 1;
+                if (4) <= (count) {
+                    count = 0;
+                };
+            }
+        });
     });
 }
