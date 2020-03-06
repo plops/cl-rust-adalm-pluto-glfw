@@ -390,18 +390,22 @@ fn main() {
 }
                                         std::process::exit(2);
 });
-                                for  dev_idx in 0..ctx.num_devices() {
+                                                let mut devices  = Vec::new();
+                for  dev_idx in 0..ctx.num_devices() {
                                                             let dev  = ctx.get_device(dev_idx).unwrap();
                     {
                                                 println!("{} {}:{} device  dev.name()={:?}  dev.num_channels()={:?}  dev.attr_read_all().unwrap()={:?}", Utc::now(), file!(), line!(), dev.name(), dev.num_channels(), dev.attr_read_all().unwrap());
 }
+                                        let mut channels  = Vec::new();
                     for  ch_idx in 0..dev.num_channels() {
                                                                         let ch  = dev.get_channel(ch_idx).unwrap();
                         {
                                                         println!("{} {}:{} device-channel  ch_idx={:?}  ch.name()={:?}  ch.attr_read_all().unwrap()={:?}", Utc::now(), file!(), line!(), ch_idx, ch.name(), ch.attr_read_all().unwrap());
-};
-};
 }
+                        channels.push((ch_idx, ch.name(), ch.attr_read_all().unwrap()));
+}
+                    devices.push((dev_idx, dev.name(), dev.attr_read_all().unwrap(), channels));
+};
                                 let mut nchan  = 0;
                 for  mut chan in dev.channels() {
                                         if  (Some(std::any::TypeId::of::<i16>()))==(chan.type_of())  {
