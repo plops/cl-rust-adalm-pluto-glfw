@@ -36,10 +36,13 @@ fn main() {
     // s2,r2 fft_scaler -> opengl
     // s0 and s2 are bounded to 3 or 4, the processing seems to be fast enough to ever create back pressure (and loose sdr_receiver chunks)
     // size of bounded s2 channel has to be large enough to store chunks that are acquired while waiting for next vsync
+    // gui controls:
+    // on startup the sdr_receiver threads collects all controls and sends them through s_controls to the gui thread
     let (s0, r0) = crossbeam_channel::bounded(4);
     let barrier_pipeline_setup = std::sync::Arc::new(std::sync::Barrier::new(3));
     let (s1, r1) = crossbeam_channel::bounded(4);
     let (s2, r2) = crossbeam_channel::bounded(40);
+    let (s_controls, r_controls) = crossbeam_channel::bounded(1);
     // pipeline storage:
     // fftin is filled by sdr_receiver thread and consumed by fft_processor thread
     // fftout is filled by fft_processor and consumed by fft_scaler
@@ -182,6 +185,12 @@ fn main() {
             let mut line_yoffset = 0;
             let mut buffer_fill = 0.;
             imgui.set_ini_filename(None);
+            let devices: Vec<(
+                usize,
+                Option<String>,
+                HashMap<String, String, RandomState>,
+                Vec<(usize, Option<String>, HashMap<String, String, RandomState>)>,
+            )> = r_controls.recv().ok().unwrap();
             while (!(window.should_close())) {
                 let v: Vec<_> = r2.try_iter().collect();
                 buffer_fill = (((1.00e+2) * (v.len() as f32)) / (40.));
@@ -219,7 +228,10 @@ fn main() {
                         ui.text(im_str!("buffer_fill={:?}%", buffer_fill));
                         ui.image(texture_id, [256., 512.]).build();
                     });
-                    imgui::Window::new(&ui, im_str!("control")).build(|| {
+                    imgui::Window::new(&ui, im_str!("controls")).build(|| {
+                        for d in devices {
+                            ui.text(im_str!("device_idx={:?}", d.0));
+                        }
                         let mut current_item = 0;
                         let mut items =
                             [im_str!("combo_a"), im_str!("combo_b"), im_str!("combo_c")];
@@ -405,7 +417,8 @@ fn main() {
                         channels.push((ch_idx, ch.name(), ch.attr_read_all().unwrap()));
 }
                     devices.push((dev_idx, dev.name(), dev.attr_read_all().unwrap(), channels));
-};
+}
+                s_controls.send(devices).unwrap();
                                 let mut nchan  = 0;
                 for  mut chan in dev.channels() {
                                         if  (Some(std::any::TypeId::of::<i16>()))==(chan.type_of())  {

@@ -122,12 +122,17 @@ panic = \"abort\"
 	       "// s2,r2 fft_scaler -> opengl"
 	       "// s0 and s2 are bounded to 3 or 4, the processing seems to be fast enough to ever create back pressure (and loose sdr_receiver chunks)"
 	       "// size of bounded s2 channel has to be large enough to store chunks that are acquired while waiting for next vsync"
+	       "// gui controls:"
+	       "// on startup the sdr_receiver threads collects all controls and sends them through s_controls to the gui thread"
 	      (let (((values s0 r0) (crossbeam_channel--bounded ,n-buf)) ;; sdr_receiver -> fft_processor
 					;(wait_group_pipeline_setup (crossbeam_utils--sync--WaitGroup--new))
 		    (barrier_pipeline_setup (std--sync--Arc--new (std--sync--Barrier--new ,n-threads)))
 		   
 		    ((values s1 r1) (crossbeam_channel--bounded ,n-buf)) ;; fft_processor -> fft_scaler
-		    ((values s2 r2) (crossbeam_channel--bounded ,n-buf-out))) ;; fft_scaler -> opengl
+		    ((values s2 r2) (crossbeam_channel--bounded ,n-buf-out)) ;; fft_scaler -> gui/opengl
+		    ((values s_controls r_controls) (crossbeam_channel--bounded 1)) ;; sdr_receiver -> gui
+		    
+		    ) 
 		"// pipeline storage:"
 		"// fftin is filled by sdr_receiver thread and consumed by fft_processor thread"
 		"// fftout is filled by fft_processor and consumed by fft_scaler"
@@ -223,108 +228,117 @@ panic = \"abort\"
 					  (line_yoffset 0)
 					  (buffer_fill 0s0))
 				     (imgui.set_ini_filename None)
-				     (while (not (window.should_close))
+				     
+				     (let ((devices (dot r_controls
+							 (recv)
+							 (ok)
+							 (unwrap))))
+				       (declare (type "Vec<(usize, Option<String>, HashMap<String, String, RandomState>, Vec<(usize, Option<String>, HashMap<String, String, RandomState>)>)>" devices))
 				       
+				       (while (not (window.should_close))
+					 
 
-				       (let ((v (dot r2
-						     (try_iter)
-						     (collect))))
-					 (declare (type "Vec<_>" v))
-					 (setf buffer_fill (/ (* 100s0 (coerce (v.len) f32))
-							      ,(* 1s0 n-buf-out)))
-					 #+nil ,(logprint "gui" `((v.len) ;v
-							    ))
-					 "// each response received on r2 is a line that will be written into the texture"
-					 ,(format nil "// v.len() should never become ~a this would mean that the s2 channel is full and back pressure would lead to dropped lines. if v.len()" n-buf-out)
-					 (for (c v)
-					      (let ((cc c)
-						    (hb (dot (aref fftout_scaled cc)
-							     (clone)))
-						    (b (space "&" (dot hb
-									  (lock)
-									  (unwrap)))))
-						(declare
-						 (type usize cc)
-						 ;(type ,(format nil "Mutex<[f32;~a]>" n-samples) hb)
-						 )
-					       (space unsafe
-						      (progn
-							(gl--TexSubImage2D ;:target
-									   gl--TEXTURE_2D
-									   ;:level
-									   0
-									   ;:xoffset
-									   0
-									   ;:yoffset
-									   line_yoffset
-									   ;:width
-									   ,tex-width
-									   ;:height
-									   1
-									   ;:format
-									   gl--RED
-									   ;:type_
-									   gl--FLOAT
-									   ;:pixels
-									   (coerce (coerce (ref (aref b 0))
-											   "*const f32")
-										   "*const c_void")
-									   )))
-					       (do0
-						(incf line_yoffset)
-						(when (<= ,tex-height line_yoffset)
-						  (setf line_yoffset 0)))
-					       ))
-					 )
-				       
-				       (space unsafe
-					      (progn
-						(gl--Clear
-						 (logior gl--COLOR_BUFFER_BIT
-							 gl--DEPTH_BUFFER_BIT))))
-				       (progn
-					 (let ((ui (imgui_glfw.frame "&mut window"
-								     "&mut imgui")))
-					   (ui.show_metrics_window "&mut true")
-					   (dot (imgui--Window--new &ui (im_str! (string "waterfall fft") ))
-						(build (lambda ()
+					 (let ((v (dot r2
+						       (try_iter)
+						       (collect))))
+					   (declare (type "Vec<_>" v))
+					   (setf buffer_fill (/ (* 100s0 (coerce (v.len) f32))
+								,(* 1s0 n-buf-out)))
+					   #+nil ,(logprint "gui" `((v.len) ;v
+								    ))
+					   "// each response received on r2 is a line that will be written into the texture"
+					   ,(format nil "// v.len() should never become ~a this would mean that the s2 channel is full and back pressure would lead to dropped lines. if v.len()" n-buf-out)
+					   (for (c v)
+						(let ((cc c)
+						      (hb (dot (aref fftout_scaled cc)
+							       (clone)))
+						      (b (space "&" (dot hb
+									 (lock)
+									 (unwrap)))))
+						  (declare
+						   (type usize cc)
+					;(type ,(format nil "Mutex<[f32;~a]>" n-samples) hb)
+						   )
+						  (space unsafe
+							 (progn
+							   (gl--TexSubImage2D ;:target
+							    gl--TEXTURE_2D
+					;:level
+							    0
+					;:xoffset
+							    0
+					;:yoffset
+							    line_yoffset
+					;:width
+							    ,tex-width
+					;:height
+							    1
+					;:format
+							    gl--RED
+					;:type_
+							    gl--FLOAT
+					;:pixels
+							    (coerce (coerce (ref (aref b 0))
+									    "*const f32")
+								    "*const c_void")
+							    )))
+						  (do0
+						   (incf line_yoffset)
+						   (when (<= ,tex-height line_yoffset)
+						     (setf line_yoffset 0)))
+						  ))
+					   )
+					 
+					 (space unsafe
+						(progn
+						  (gl--Clear
+						   (logior gl--COLOR_BUFFER_BIT
+							   gl--DEPTH_BUFFER_BIT))))
+					 (progn
+					   (let ((ui (imgui_glfw.frame "&mut window"
+								       "&mut imgui")))
+					     (ui.show_metrics_window "&mut true")
+					     (dot (imgui--Window--new &ui (im_str! (string "waterfall fft") ))
+						  (build (lambda ()
 					;(ui.text (string "bla2"))
-							 (ui.text (im_str! (string "buffer_fill={:?}%" ) buffer_fill))
-							 (dot (ui.image texture_id (list ,(* 1s0 tex-width)
-											 ,(* 1s0 tex-height)))
-							      (build)))))
-					   (dot (imgui--Window--new &ui (im_str! (string "control") ))
-						(build (lambda ()
-							 (let* ((current_item 0)
-								(items (list (im_str! (string "combo_a"))
-									     (im_str! (string "combo_b"))
-									     (im_str! (string "combo_c")))))
-							   (ui.combo (im_str! (string "combo"))
-								     "&mut current_item"
-								     &items
-								     8
-								    )))))
-					   (ui.show_demo_window "&mut true")
-					   (imgui_glfw.draw ui "&mut window")))
-				       (window.swap_buffers)
-				       (glfw.poll_events)
-				       (for ((values _ event)
-					     (glfw--flush_messages &events))
+							   (ui.text (im_str! (string "buffer_fill={:?}%" ) buffer_fill))
+							   (dot (ui.image texture_id (list ,(* 1s0 tex-width)
+											   ,(* 1s0 tex-height)))
+								(build)))))
+					     (dot (imgui--Window--new &ui (im_str! (string "controls") ))
+						  (build (lambda ()
+							   (for (d devices)
+								(ui.text (im_str! (string "device_idx={:?}") d.0)))
+							   (let* ((current_item 0)
+								  (items (list (im_str! (string "combo_a"))
+									       (im_str! (string "combo_b"))
+									       (im_str! (string "combo_c")))))
+							     (ui.combo (im_str! (string "combo"))
+								       "&mut current_item"
+								       &items
+								       8
+								       )))))
+					     (ui.show_demo_window "&mut true")
+					     (imgui_glfw.draw ui "&mut window")))
+					 (window.swap_buffers)
+					 (glfw.poll_events)
+					 (for ((values _ event)
+					       (glfw--flush_messages &events))
 					;,(logprint "event" `(event))
-					    (imgui_glfw.handle_event
-					     "&mut imgui"
-					     &event)
-					    (case event
-					      ((glfw--WindowEvent--Key
-						Key--Escape
-						_
-						Action--Press
-						_)
-					       (progn
-						 ,(logprint "gui wants to quit, notify all threads" `())
-						 (dot keep_running (swap false std--sync--atomic--Ordering--Relaxed))
-						 (window.set_should_close true)))
-					      (t "{}"))))))))
+					      (imgui_glfw.handle_event
+					       "&mut imgui"
+					       &event)
+					      (case event
+						((glfw--WindowEvent--Key
+						  Key--Escape
+						  _
+						  Action--Press
+						  _)
+						 (progn
+						   ,(logprint "gui wants to quit, notify all threads" `())
+						   (dot keep_running (swap false std--sync--atomic--Ordering--Relaxed))
+						   (window.set_should_close true)))
+						(t "{}")))))))))
 			      (fft_scaler
 			       (do0
 				(do0 ;let ((wg (wait_group_pipeline_setup.clone)))
@@ -498,7 +512,10 @@ panic = \"abort\"
 								    (dot dev (attr_read_all)
 									 (unwrap))
 								    channels)))
-					     )))
+					     ))
+				      (dot s_controls
+					   (send devices)
+					   (unwrap)))
 
 				     ;; 2879999 R1:61439999 RF:30719999 RXSAMP:30719999", "dcxo_tune_coarse_available": "[0 0 0]", "trx_rate_governor_available": "nominal highest_osr", "rssi_gain_step_error": "lna_error: 0 0 0 0\nmixer_error: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0\ngain_step_calib_reg_val: 0 0 0 0 0", "xo_correction": "40000035", "ensm_mode_available": "sleep wait alert fdd pinctrl pinctrl_fdd_indep", "calib_mode": "auto", "filter_fir_config": "FIR Rx: 0,0 Tx: 0,0", "gain_table_config": "<gaintable AD9361 type=FULL dest=3 start=1300000000 end=4000000000>\n-3, 8, 0x20 ... 0x20\n</gaintable>\n", "xo_correction_available": "[39992035 1 40008035]", "ensm_mode": "fdd", "trx_rate_governor": "nominal", "dcxo_tune_fine_available": "[0 0 0]", "calib_mode_available": "auto manual manual_tx_quad tx_quad rf_dc_offs rssi_gain_step", "tx_path_rates": "BBPLL:983039999 DAC:122879999 T2:122879999 T1:61439999 TF:30719999 TXSAMP:30719999"}
 ;2020-03-06 06:14:06.128808954 UTC src/main.rs:393 phy  ch_idx=0  ch.name()=Some("TX_LO")  ch.attr_read_all().unwrap()={"powerdown": "0", "frequency_available": "[46875001 1 6000000000]", "fastlock_save": "0 71,111,71,223,71,71,71,206,199,71,111,239,71,87,223,71", "external": "0", "fastlock_load": "0", "fastlock_store": "0", "frequency": "2449999998"}
