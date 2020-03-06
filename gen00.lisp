@@ -311,7 +311,11 @@ panic = \"abort\"
 					     (dot (imgui--Window--new &ui (im_str! (string "controls") ))
 						  (build (lambda ()
 							   (for (d &devices)
-								(ui.text (im_str! (string "device_idx={:?}") d.0)))
+								(ui.text (case &d.1
+									   ((Some x) (im_str! (string "{}") x))
+									   (t (im_str! (string "{:?}") d.0))))
+								(for ((values k v) &d.2)
+								     (ui.text (im_str! (string "{} {}") k v))))
 							   (let* ((current_item 0)
 								  (items (list (im_str! (string "combo_a"))
 									       (im_str! (string "combo_b"))

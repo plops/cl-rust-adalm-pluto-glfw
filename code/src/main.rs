@@ -232,7 +232,13 @@ fn main() {
                     });
                     imgui::Window::new(&ui, im_str!("controls")).build(|| {
                         for d in &devices {
-                            ui.text(im_str!("device_idx={:?}", d.0));
+                            ui.text(match &d.1 {
+                                Some(x) => im_str!("{}", x),
+                                _ => im_str!("{:?}", d.0),
+                            });
+                            for (k, v) in &d.2 {
+                                ui.text(im_str!("{} {}", k, v));
+                            }
                         }
                         let mut current_item = 0;
                         let mut items =
