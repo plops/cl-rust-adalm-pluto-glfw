@@ -307,16 +307,8 @@ panic = \"abort\"
 							   (ui.text (im_str! (string "buffer_fill={:?}%" ) buffer_fill))
 							   (dot (ui.image texture_id (list ,(* 1s0 tex-width)
 											   ,(* 1s0 tex-height)))
-								(build)))))
-					     (dot (imgui--Window--new &ui (im_str! (string "controls") ))
-						  (build (lambda ()
-							   (for (d &devices)
-								(ui.text (case &d.1
-									   ((Some x) (im_str! (string "{}") x))
-									   (t (im_str! (string "{:?}") d.0))))
-								(for ((values k v) &d.2)
-								     (ui.text (im_str! (string "{} {}") k v))))
-							   (let* ((current_item 0)
+								(build))
+							   #+ni (let* ((current_item 0)
 								  (items (list (im_str! (string "combo_a"))
 									       (im_str! (string "combo_b"))
 									       (im_str! (string "combo_c")))))
@@ -325,6 +317,16 @@ panic = \"abort\"
 								       &items
 								       8
 								       )))))
+					     (for (d &devices)
+						  (let ((title (case &d.1
+								 ((Some x) (im_str! (string "{}") x))
+								 (t (im_str! (string "{:?}") d.0)))))
+						    (dot (imgui--Window--new &ui &title)
+							(build (lambda ()
+								 (for ((values k v) &d.2)
+								      (ui.text (im_str! (string "{} {}") k v)))
+								 )))))
+					     
 					     (ui.show_demo_window "&mut true")
 					     (imgui_glfw.draw ui "&mut window")))
 					 (window.swap_buffers)

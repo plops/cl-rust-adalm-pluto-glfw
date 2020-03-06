@@ -230,21 +230,17 @@ fn main() {
                         ui.text(im_str!("buffer_fill={:?}%", buffer_fill));
                         ui.image(texture_id, [256., 512.]).build();
                     });
-                    imgui::Window::new(&ui, im_str!("controls")).build(|| {
-                        for d in &devices {
-                            ui.text(match &d.1 {
-                                Some(x) => im_str!("{}", x),
-                                _ => im_str!("{:?}", d.0),
-                            });
+                    for d in &devices {
+                        let title = match &d.1 {
+                            Some(x) => im_str!("{}", x),
+                            _ => im_str!("{:?}", d.0),
+                        };
+                        imgui::Window::new(&ui, &title).build(|| {
                             for (k, v) in &d.2 {
                                 ui.text(im_str!("{} {}", k, v));
                             }
-                        }
-                        let mut current_item = 0;
-                        let mut items =
-                            [im_str!("combo_a"), im_str!("combo_b"), im_str!("combo_c")];
-                        ui.combo(im_str!("combo"), &mut current_item, &items, 8);
-                    });
+                        });
+                    }
                     ui.show_demo_window(&mut true);
                     imgui_glfw.draw(ui, &mut window);
                 }
