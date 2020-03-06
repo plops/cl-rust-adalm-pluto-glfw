@@ -325,12 +325,16 @@ panic = \"abort\"
 							 (build (lambda ()
 								  "// show device attributes"
 								 (for ((values k v) &d.2) 
-								      (ui.text (im_str! (string "{} {}") k v)))
+								      (ui.text (im_str! (string "{}={}") k v)))
 								 "// show channel attributes"
 								 (for ((values ch_idx ch_name_ attribs) &d.3)
+								      
 								      (ui.text (case &ch_name_
 										 ((Some x) (im_str! (string "{}") x))
-										 (t (im_str! (string "{:?}") ch_idx)))))
+										 (t (im_str! (string "{:?}") ch_idx))))
+								      (for ((values k v) attribs)
+									   (ui.text (im_str! (string "{}={}")  k v)))
+								      (ui.separator))
 								 )))))
 					     
 					     (ui.show_demo_window "&mut true")
