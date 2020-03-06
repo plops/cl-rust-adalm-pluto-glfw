@@ -390,13 +390,16 @@ fn main() {
 }
                                         std::process::exit(2);
 });
-                                {
-                                        println!("{} {}:{} phy  phy.name()={:?}  phy.num_channels()={:?}  phy.attr_read_all().unwrap()={:?}", Utc::now(), file!(), line!(), phy.name(), phy.num_channels(), phy.attr_read_all().unwrap());
-}
-                for  ch_idx in 0..phy.num_channels() {
-                                                            let ch  = phy.get_channel(ch_idx).unwrap();
+                                for  dev_idx in 0..ctx.num_devices() {
+                                                            let dev  = ctx.get_device(dev_idx).unwrap();
                     {
-                                                println!("{} {}:{} phy  ch_idx={:?}  ch.name()={:?}  ch.attr_read_all().unwrap()={:?}", Utc::now(), file!(), line!(), ch_idx, ch.name(), ch.attr_read_all().unwrap());
+                                                println!("{} {}:{} device  dev.name()={:?}  dev.num_channels()={:?}  dev.attr_read_all().unwrap()={:?}", Utc::now(), file!(), line!(), dev.name(), dev.num_channels(), dev.attr_read_all().unwrap());
+}
+                    for  ch_idx in 0..dev.num_channels() {
+                                                                        let ch  = dev.get_channel(ch_idx).unwrap();
+                        {
+                                                        println!("{} {}:{} device-channel  ch_idx={:?}  ch.name()={:?}  ch.attr_read_all().unwrap()={:?}", Utc::now(), file!(), line!(), ch_idx, ch.name(), ch.attr_read_all().unwrap());
+};
 };
 }
                                 let mut nchan  = 0;

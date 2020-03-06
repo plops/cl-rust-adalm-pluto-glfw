@@ -475,18 +475,19 @@ panic = \"abort\"
 
 				    (do0
 				     ;; https://wiki.analog.com/resources/tools-software/linux-drivers/iio-transceiver/ad9361#list_chosen_rx_path_rates
-				     ,(logprint "phy" `((phy.name)
-							(phy.num_channels)
-							(dot phy (attr_read_all)
-							     (unwrap))
-							))
-				     (for (ch_idx (slice 0 (phy.num_channels)))
-					  (let ((ch (dot phy (get_channel ch_idx)
-							 (unwrap))))
-					    ,(logprint "phy" `(ch_idx
-							       (ch.name)
-							      (dot ch (attr_read_all)
-								   (unwrap))))))
+				     (for (dev_idx (slice 0 (ctx.num_devices)))
+					  (let ((dev (dot ctx (get_device dev_idx) (unwrap))))
+					    ,(logprint "device" `((dev.name)
+								  (dev.num_channels)
+								  (dot dev (attr_read_all)
+								       (unwrap))))
+					    (for (ch_idx (slice 0 (dev.num_channels)))
+						 (let ((ch (dot dev (get_channel ch_idx)
+								(unwrap))))
+						   ,(logprint "device-channel" `(ch_idx
+								      (ch.name)
+								      (dot ch (attr_read_all)
+									   (unwrap))))))))
 
 				     ;; 2879999 R1:61439999 RF:30719999 RXSAMP:30719999", "dcxo_tune_coarse_available": "[0 0 0]", "trx_rate_governor_available": "nominal highest_osr", "rssi_gain_step_error": "lna_error: 0 0 0 0\nmixer_error: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0\ngain_step_calib_reg_val: 0 0 0 0 0", "xo_correction": "40000035", "ensm_mode_available": "sleep wait alert fdd pinctrl pinctrl_fdd_indep", "calib_mode": "auto", "filter_fir_config": "FIR Rx: 0,0 Tx: 0,0", "gain_table_config": "<gaintable AD9361 type=FULL dest=3 start=1300000000 end=4000000000>\n-3, 8, 0x20 ... 0x20\n</gaintable>\n", "xo_correction_available": "[39992035 1 40008035]", "ensm_mode": "fdd", "trx_rate_governor": "nominal", "dcxo_tune_fine_available": "[0 0 0]", "calib_mode_available": "auto manual manual_tx_quad tx_quad rf_dc_offs rssi_gain_step", "tx_path_rates": "BBPLL:983039999 DAC:122879999 T2:122879999 T1:61439999 TF:30719999 TXSAMP:30719999"}
 ;2020-03-06 06:14:06.128808954 UTC src/main.rs:393 phy  ch_idx=0  ch.name()=Some("TX_LO")  ch.attr_read_all().unwrap()={"powerdown": "0", "frequency_available": "[46875001 1 6000000000]", "fastlock_save": "0 71,111,71,223,71,71,71,206,199,71,111,239,71,87,223,71", "external": "0", "fastlock_load": "0", "fastlock_store": "0", "frequency": "2449999998"}
