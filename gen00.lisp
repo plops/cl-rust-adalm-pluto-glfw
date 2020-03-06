@@ -293,6 +293,17 @@ panic = \"abort\"
 							 (dot (ui.image texture_id (list ,(* 1s0 tex-width)
 											 ,(* 1s0 tex-height)))
 							      (build)))))
+					   (dot (imgui--Window--new &ui (im_str! (string "control") ))
+						(build (lambda ()
+							 (let* ((current_item 0)
+								(items (list (im_str! (string "combo_a"))
+									     (im_str! (string "combo_b"))
+									     (im_str! (string "combo_c")))))
+							   (ui.combo (im_str! (string "combo"))
+								     "&mut current_item"
+								     &items
+								     8
+								    )))))
 					   (ui.show_demo_window "&mut true")
 					   (imgui_glfw.draw ui "&mut window")))
 				       (window.swap_buffers)
