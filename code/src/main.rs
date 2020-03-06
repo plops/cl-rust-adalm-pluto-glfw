@@ -15,6 +15,8 @@ use crossbeam_channel::bounded;
 use fftw::plan::C2CPlan;
 use imgui_glfw_rs::glfw::{Action, Context, Key};
 use imgui_glfw_rs::ImguiGLFW;
+use std::collections::hash_map::RandomState;
+use std::collections::HashMap;
 use std::ffi::CString;
 use std::io;
 use std::os::raw::c_void;
@@ -229,7 +231,7 @@ fn main() {
                         ui.image(texture_id, [256., 512.]).build();
                     });
                     imgui::Window::new(&ui, im_str!("controls")).build(|| {
-                        for d in devices {
+                        for d in &devices {
                             ui.text(im_str!("device_idx={:?}", d.0));
                         }
                         let mut current_item = 0;
@@ -418,7 +420,7 @@ fn main() {
 }
                     devices.push((dev_idx, dev.name(), dev.attr_read_all().unwrap(), channels));
 }
-                s_controls.send(devices).unwrap();
+                s_controls.send(devices.clone()).unwrap();
                                 let mut nchan  = 0;
                 for  mut chan in dev.channels() {
                                         if  (Some(std::any::TypeId::of::<i16>()))==(chan.type_of())  {
