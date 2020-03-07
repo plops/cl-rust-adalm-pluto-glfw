@@ -238,7 +238,13 @@ codegen-units = 1
 						       "&mut window"))
 					  (line_yoffset 0)
 					  (buffer_fill))
-				     (imgui.set_ini_filename None)
+				     (let ((ini_fn ;(imgui.ini_filename)
+					    (imgui--ImStr--new (string "imgui.ini"))
+								       
+					     ))
+				       ;(declare (type "Option<imgui::ImStr>" ini_fn))
+				       ,(logprint "imgui ini" `(ini_fn))
+				       (imgui.set_ini_filename ini_fn))
 				     
 				     (let
 				       ((devices (dot r_controls

@@ -71,7 +71,9 @@ dcxo_tune_coarse_available
   |         | https://stjepang.github.io/2019/01/29/lock-free-rust-crossbeam-in-2019.html                                     | scoped thread, atomic cell            |
   |         | https://users.rust-lang.org/t/how-can-i-allocate-aligned-memory-in-rust/33293                                   | std::slice::from_raw_parts[_mut]      |
   |         | https://users.rust-lang.org/t/solved-how-to-move-non-send-between-threads-or-an-alternative/19928               |                                       |
-
+  |---------+-----------------------------------------------------------------------------------------------------------------+---------------------------------------|
+  |    2015 | https://github.com/Gekkio/imgui-rs/issues/7                                                                     |      string handling in imgui         |
+  |         |                                                                                                                 |                                       |
 
 * How to build release:
 
@@ -231,3 +233,7 @@ martin@labolg ~/stage/cl-rust-adalm-pluto-glfw/code/target/release $ ldd code_st
 - not yet used
 - https://www.khronos.org/opengl/wiki/Sync_Object
 - https://www.khronos.org/registry/OpenGL/extensions/NV/WGL_NV_delay_before_swap.txt
+
+* String handling in imgui
+
+

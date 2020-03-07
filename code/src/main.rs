@@ -181,7 +181,17 @@ fn main() {
                 let mut imgui_glfw = imgui_glfw_rs::ImguiGLFW::new(&mut imgui, &mut window);
                 let mut line_yoffset = 0;
                 let mut buffer_fill;
-                imgui.set_ini_filename(None);
+                let ini_fn = imgui::ImStr::new("imgui.ini");
+                {
+                    println!(
+                        "{} {}:{} imgui ini  ini_fn={:?}",
+                        Utc::now(),
+                        file!(),
+                        line!(),
+                        ini_fn
+                    );
+                }
+                imgui.set_ini_filename(ini_fn);
                 let devices: Vec<(
                     usize,
                     Option<String>,
