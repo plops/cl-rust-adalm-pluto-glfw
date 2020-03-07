@@ -117,7 +117,7 @@ panic = \"abort\"
 	    "unsafe impl Send for SendComplex {}"
 	    )
 	   (defun main ()
-	     (let* ((keep_running (std--sync--atomic--AtomicBool--new true)))
+	     (let ((keep_running (std--sync--atomic--AtomicBool--new true)))
 	       "// dataprocessing pipeline:"
 	       "// each stage runs in a thread, they communicated via channels"
 	       "// s0,r0 sdr_receiver -> fft_processor"
@@ -140,7 +140,7 @@ panic = \"abort\"
 		"// fftin is filled by sdr_receiver thread and consumed by fft_processor thread"
 		"// fftout is filled by fft_processor and consumed by fft_scaler"
 		"// fftout_scaled is filled by fft_scaler and consumed by the gui thread"
-		(let* ((fftin
+		(let ((fftin
 			(list ,@(loop for i below n-buf collect
 				     `(std--sync--Arc--new
 				       (std--sync--Mutex--new
@@ -189,6 +189,7 @@ panic = \"abort\"
 					  ;; std--borrow--Cow--Owned data
 					  ;; data.as_ptr as *const std--ffi--c_void
 					  (texture_id))
+				     (declare (immutable texture_id))
 				     (for (i (slice 0 ,tex-width))
 					  (for (j (slice 0 ,tex-height))
 					       (data.push (coerce j u8))
@@ -386,7 +387,7 @@ panic = \"abort\"
 						    (ok)
 						    (unwrap))))
 				      (declare (type usize tup))
-				      (let* ((hc (dot (aref fftout_scaled count)
+				      (let ((hc (dot (aref fftout_scaled count)
 						      (clone)))
 					     (c (space "&mut" (dot hc
 								   (lock)
@@ -451,12 +452,12 @@ panic = \"abort\"
 						    (ok)
 						    (unwrap))))
 				      (declare (type usize tup))
-				      (let* ((ha (dot (aref fftin tup)
+				      (let ((ha (dot (aref fftin tup)
 						      (clone)))
 					     (a (space "&mut" (dot ha
 								   (lock)
 								   (unwrap)))))
-					(let* ((hb (dot (aref fftout tup)
+					(let ((hb (dot (aref fftout tup)
 							(clone)))
 					       (b (space "&mut" (dot hb
 								     (lock)
@@ -483,7 +484,7 @@ panic = \"abort\"
 				;; https://github.com/fpagliughi/rust-industrial-io/blob/master/examples/riio_detect.rs
 				(let ((ctx (dot (iio--Context--create_network (string "192.168.2.1"))
 						(unwrap_or_else (lambda (err_)
-								  ,(logprint "couldnt open iio context")
+								  ,(logprint "couldnt open iio context" `(err_))
 								  (std--process--exit 1))))))
 
 				  
@@ -558,7 +559,7 @@ panic = \"abort\"
 
 					    
 					    ,(logprint "sdr_reader loop starts" `())
-					    (let* ((sdr_count 0))
+					    (do0 ;let* ((sdr_count 0))
 
 
 					      (do0
@@ -607,7 +608,7 @@ panic = \"abort\"
 					      
 					     (while (dot keep_running (load std--sync--atomic--Ordering--Relaxed)) 
 
-					       (incf sdr_count)
+					       ;(incf sdr_count)
 
 					       #+nil
 					       (when (== 0 (% sdr_count 100))
@@ -621,7 +622,7 @@ panic = \"abort\"
 						 (t "()"))
 					       (progn
 						 (let ((time_acquisition (Utc--now)))
-						   (let* ((ha (dot (aref fftin count)
+						   (let ((ha (dot (aref fftin count)
 								   (clone)))
 							  (a (space "&mut" (dot ha
 										(lock)
@@ -666,11 +667,11 @@ panic = \"abort\"
 							    ,code))))
 					  (unwrap_or_else
 					   (lambda (err_)
-					     ,(logprint (format nil "couldnt spawn ~a thread" name) `())
+					     ,(logprint (format nil "couldnt spawn ~a thread" name) `(err_))
 					     (std--process--exit 1))))))))
 			 (unwrap_or_else
 			  (lambda (err_)
-			    ,(logprint (format nil "couldn't crossbeam scope") `())
+			    ,(logprint (format nil "couldn't crossbeam scope") `(err_))
 			    (std--process--exit 1)))))))))))))))
 
 

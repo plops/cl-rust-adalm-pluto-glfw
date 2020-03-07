@@ -30,7 +30,7 @@ pub struct SendComplex {
 // the following is required to tell rust that we can send pointers to complex arrays between threads
 unsafe impl Send for SendComplex {}
 fn main() {
-    let mut keep_running = std::sync::atomic::AtomicBool::new(true);
+    let keep_running = std::sync::atomic::AtomicBool::new(true);
     // dataprocessing pipeline:
     // each stage runs in a thread, they communicated via channels
     // s0,r0 sdr_receiver -> fft_processor
@@ -49,7 +49,7 @@ fn main() {
     // fftin is filled by sdr_receiver thread and consumed by fft_processor thread
     // fftout is filled by fft_processor and consumed by fft_scaler
     // fftout_scaled is filled by fft_scaler and consumed by the gui thread
-    let mut fftin = [
+    let fftin = [
         std::sync::Arc::new(std::sync::Mutex::new(SendComplex {
             timestamp: Utc::now(),
             ptr: fftw::array::AlignedVec::new(256),
@@ -67,7 +67,7 @@ fn main() {
             ptr: fftw::array::AlignedVec::new(256),
         })),
     ];
-    let mut fftout = [
+    let fftout = [
         std::sync::Arc::new(std::sync::Mutex::new(SendComplex {
             timestamp: Utc::now(),
             ptr: fftw::array::AlignedVec::new(256),
@@ -85,7 +85,7 @@ fn main() {
             ptr: fftw::array::AlignedVec::new(256),
         })),
     ];
-    let mut fftout_scaled: [Arc<Mutex<[f32; 256]>>; 40] = [
+    let fftout_scaled: [Arc<Mutex<[f32; 256]>>; 40] = [
         std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
         std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
         std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
@@ -150,7 +150,7 @@ fn main() {
                     return window.get_proc_address(symbol);
                 });
                 let mut data = Vec::with_capacity(((256) * (512)));
-                let mut texture_id;
+                let texture_id;
                 for i in 0..256 {
                     for j in 0..512 {
                         data.push((j as u8));
@@ -284,10 +284,11 @@ fn main() {
             .unwrap_or_else(|err_| {
                 {
                     println!(
-                        "{} {}:{} couldnt spawn gui thread ",
+                        "{} {}:{} couldnt spawn gui thread  err_={:?}",
                         Utc::now(),
                         file!(),
-                        line!()
+                        line!(),
+                        err_
                     );
                 }
                 std::process::exit(1);
@@ -317,8 +318,8 @@ fn main() {
                 let mut count = 0;
                 while (keep_running.load(std::sync::atomic::Ordering::Relaxed)) {
                     let tup: usize = r1.recv().ok().unwrap();
-                    let mut hc = fftout_scaled[count].clone();
-                    let mut c = &mut hc.lock().unwrap();
+                    let hc = fftout_scaled[count].clone();
+                    let c = &mut hc.lock().unwrap();
                     let hb = fftout[tup].clone();
                     let b = &hb.lock().unwrap();
                     let scale = ((23.) / (256 as f32));
@@ -349,10 +350,11 @@ fn main() {
             .unwrap_or_else(|err_| {
                 {
                     println!(
-                        "{} {}:{} couldnt spawn fft_scaler thread ",
+                        "{} {}:{} couldnt spawn fft_scaler thread  err_={:?}",
                         Utc::now(),
                         file!(),
-                        line!()
+                        line!(),
+                        err_
                     );
                 }
                 std::process::exit(1);
@@ -393,10 +395,10 @@ fn main() {
                 }
                 while (keep_running.load(std::sync::atomic::Ordering::Relaxed)) {
                     let tup: usize = r0.recv().ok().unwrap();
-                    let mut ha = fftin[tup].clone();
-                    let mut a = &mut ha.lock().unwrap();
-                    let mut hb = fftout[tup].clone();
-                    let mut b = &mut hb.lock().unwrap();
+                    let ha = fftin[tup].clone();
+                    let a = &mut ha.lock().unwrap();
+                    let hb = fftout[tup].clone();
+                    let b = &mut hb.lock().unwrap();
                     plan.c2c(&mut a.ptr, &mut b.ptr).unwrap();
                     b.timestamp = Utc::now();
                     s1.send(tup).unwrap();
@@ -405,10 +407,11 @@ fn main() {
             .unwrap_or_else(|err_| {
                 {
                     println!(
-                        "{} {}:{} couldnt spawn fft_processor thread ",
+                        "{} {}:{} couldnt spawn fft_processor thread  err_={:?}",
                         Utc::now(),
                         file!(),
-                        line!()
+                        line!(),
+                        err_
                     );
                 }
                 std::process::exit(1);
@@ -426,10 +429,11 @@ fn main() {
                 let ctx = iio::Context::create_network("192.168.2.1").unwrap_or_else(|err_| {
                     {
                         println!(
-                            "{} {}:{} couldnt open iio context ",
+                            "{} {}:{} couldnt open iio context  err_={:?}",
                             Utc::now(),
                             file!(),
-                            line!()
+                            line!(),
+                            err_
                         );
                     }
                     std::process::exit(1);
@@ -543,7 +547,6 @@ fn main() {
                         line!()
                     );
                 }
-                let mut sdr_count = 0;
                 let mut devices = Vec::new();
                 for dev_idx in 0..ctx.num_devices() {
                     let dev = ctx.get_device(dev_idx).unwrap();
@@ -556,7 +559,6 @@ fn main() {
                 }
                 s_controls.send(devices.clone()).unwrap();
                 while (keep_running.load(std::sync::atomic::Ordering::Relaxed)) {
-                    sdr_count += 1;
                     match buf.refill() {
                         Err(err) => {
                             {
@@ -574,8 +576,8 @@ fn main() {
                     }
                     {
                         let time_acquisition = Utc::now();
-                        let mut ha = fftin[count].clone();
-                        let mut a = &mut ha.lock().unwrap();
+                        let ha = fftin[count].clone();
+                        let a = &mut ha.lock().unwrap();
                         let data_i: Vec<i16> = buf.channel_iter::<i16>(&(chans[0])).collect();
                         let data_q: Vec<i16> = buf.channel_iter::<i16>(&(chans[1])).collect();
                         a.timestamp = time_acquisition;
@@ -594,10 +596,11 @@ fn main() {
             .unwrap_or_else(|err_| {
                 {
                     println!(
-                        "{} {}:{} couldnt spawn sdr_reader thread ",
+                        "{} {}:{} couldnt spawn sdr_reader thread  err_={:?}",
                         Utc::now(),
                         file!(),
-                        line!()
+                        line!(),
+                        err_
                     );
                 }
                 std::process::exit(1);
@@ -606,10 +609,11 @@ fn main() {
     .unwrap_or_else(|err_| {
         {
             println!(
-                "{} {}:{} couldn't crossbeam scope ",
+                "{} {}:{} couldn't crossbeam scope  err_={:?}",
                 Utc::now(),
                 file!(),
-                line!()
+                line!(),
+                err_
             );
         }
         std::process::exit(1);
