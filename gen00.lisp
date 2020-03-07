@@ -95,13 +95,16 @@ panic = \"abort\"
 	   "extern crate fftw;"
 	   (use (imgui_glfw_rs glfw (curly Action Context Key))
 		;(imgui_glfw_rs imgui)
-		(imgui_glfw_rs ImguiGLFW)
+		;(imgui_glfw_rs ImguiGLFW)
 		(std os raw c_void)
-		(std ffi CString))
-	   (use (std thread spawn)
-		(std sync (curly Arc Mutex atomic))
-		(std io)
-		(crossbeam_channel bounded))
+		;(std ffi CString)
+		)
+	   (use ;(std thread spawn)
+		(std sync (curly Arc Mutex ;atomic
+				 ))
+		;(std io)
+		;(crossbeam_channel bounded)
+		)
 	   (use (std collections HashMap)
 		(std collections hash_map RandomState))
 	   
@@ -127,6 +130,7 @@ panic = \"abort\"
 	       "// size of bounded s2 channel has to be large enough to store chunks that are acquired while waiting for next vsync"
 	       "// gui controls:"
 	       "// on startup the sdr_receiver threads collects all controls and sends them through s_controls to the gui thread"
+	       "// the gui thread waits on this channel"
 	      (let (((values s0 r0) (crossbeam_channel--bounded ,n-buf)) ;; sdr_receiver -> fft_processor
 					;(wait_group_pipeline_setup (crossbeam_utils--sync--WaitGroup--new))
 		    (barrier_pipeline_setup (std--sync--Arc--new (std--sync--Barrier--new ,n-threads)))
@@ -160,7 +164,7 @@ panic = \"abort\"
 		    (for (a core_ids)
 			 ,(logprint "affinity" `(a))))
 		  "// start all the threads in a crossbeam scope, so that they can access the pipeline storage without Rust making it too difficult"
-		  "// before the pipeline starts working all threads wait at a barrier until the fftw thread has been initialized"
+		  "// before the pipeline starts working all threads of the pipeline (not the gui thread) wait at a barrier until the fftw thread has been initialized"
 		  "// when the gui is exited (by pressing esc key in the window) all threads are notified to quit by the atomic variable keep_running"
 		  ,(let ((l `((gui
 			       (let* (
@@ -230,7 +234,7 @@ panic = \"abort\"
 						       "&mut imgui"
 						       "&mut window"))
 					  (line_yoffset 0)
-					  (buffer_fill 0s0))
+					  (buffer_fill))
 				     (imgui.set_ini_filename None)
 				     
 				     (let
@@ -512,7 +516,8 @@ panic = \"abort\"
 					     (println! (string "trigger {}")
 						       s))))
 				  (let (,@ (loop for (var name) in `((dev cf-ad9361-lpc)
-								     (phy ad9361-phy))
+								     ;(phy ad9361-phy)
+								     )
 					      collect
 						`(,var (dot ctx
 							    (find_device (string ,name))
@@ -663,8 +668,11 @@ panic = \"abort\"
 					  (builder)
 					  (name (dot (string ,name) (into)))
 					  (spawn (space (lambda (_)
-							  (let ((wg (barrier_pipeline_setup.clone)))
-							    ,code))))
+							  ,(if (eq name 'gui)
+							       `(do0 
+								 ,code)
+							       `(let ((wg (barrier_pipeline_setup.clone)))
+								  ,code)))))
 					  (unwrap_or_else
 					   (lambda (err_)
 					     ,(logprint (format nil "couldnt spawn ~a thread" name) `(err_))
@@ -683,7 +691,7 @@ panic = \"abort\"
 		       `(do0
 			 "#[allow(unused_parens)]"
 			 "#[allow(unused_imports)]"
-			 "#[allow(unused_variable)]"
+			 "#[allow(unused_variables)]"
 			 "#[allow(unused_mut)]"
 			 (use (chrono (curly DateTime Utc)))
 			 ,code)))))

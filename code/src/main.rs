@@ -1,6 +1,6 @@
 #[allow(unused_parens)]
 #[allow(unused_imports)]
-#[allow(unused_variable)]
+#[allow(unused_variables)]
 #[allow(unused_mut)]
 use chrono::{DateTime, Utc};
 #[macro_use]
@@ -11,17 +11,12 @@ extern crate crossbeam_channel;
 extern crate fftw;
 extern crate imgui_glfw_rs;
 extern crate industrial_io as iio;
-use crossbeam_channel::bounded;
 use fftw::plan::C2CPlan;
 use imgui_glfw_rs::glfw::{Action, Context, Key};
-use imgui_glfw_rs::ImguiGLFW;
 use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
-use std::ffi::CString;
-use std::io;
 use std::os::raw::c_void;
-use std::sync::{atomic, Arc, Mutex};
-use std::thread::spawn;
+use std::sync::{Arc, Mutex};
 // for fftw to be fast storage in the data processing pipeline must be aligned for simd (on 16 byte boundary). the fftw package comes with a type for this.
 pub struct SendComplex {
     pub timestamp: DateTime<Utc>,
@@ -40,6 +35,7 @@ fn main() {
     // size of bounded s2 channel has to be large enough to store chunks that are acquired while waiting for next vsync
     // gui controls:
     // on startup the sdr_receiver threads collects all controls and sends them through s_controls to the gui thread
+    // the gui thread waits on this channel
     let (s0, r0) = crossbeam_channel::bounded(4);
     let barrier_pipeline_setup = std::sync::Arc::new(std::sync::Barrier::new(3));
     let (s1, r1) = crossbeam_channel::bounded(4);
@@ -128,14 +124,13 @@ fn main() {
         std::sync::Arc::new(std::sync::Mutex::new([0.0; 256])),
     ];
     // start all the threads in a crossbeam scope, so that they can access the pipeline storage without Rust making it too difficult
-    // before the pipeline starts working all threads wait at a barrier until the fftw thread has been initialized
+    // before the pipeline starts working all threads of the pipeline (not the gui thread) wait at a barrier until the fftw thread has been initialized
     // when the gui is exited (by pressing esc key in the window) all threads are notified to quit by the atomic variable keep_running
     crossbeam_utils::thread::scope(|scope| {
         scope
             .builder()
             .name("gui".into())
             .spawn(|_| {
-                let wg = barrier_pipeline_setup.clone();
                 let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
                 glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
                 {
@@ -188,7 +183,7 @@ fn main() {
                 let mut imgui = imgui::Context::create();
                 let mut imgui_glfw = imgui_glfw_rs::ImguiGLFW::new(&mut imgui, &mut window);
                 let mut line_yoffset = 0;
-                let mut buffer_fill = 0.;
+                let mut buffer_fill;
                 imgui.set_ini_filename(None);
                 let devices: Vec<(
                     usize,
@@ -467,17 +462,6 @@ fn main() {
                     {
                         println!(
                             "{} {}:{} no device named cf-ad9361-lpc ",
-                            Utc::now(),
-                            file!(),
-                            line!()
-                        );
-                    }
-                    std::process::exit(2);
-                });
-                let phy = ctx.find_device("ad9361-phy").unwrap_or_else(|| {
-                    {
-                        println!(
-                            "{} {}:{} no device named ad9361-phy ",
                             Utc::now(),
                             file!(),
                             line!()
