@@ -689,9 +689,9 @@ panic = \"abort\"
 						      (merge-pathnames (format nil "src/~a.rs" name)
 								       *source-dir*))
 		       `(do0
-			 "#[allow(unused_parens)]"
-			 "#[allow(unused_imports)]"
-			 "#[allow(unused_variables)]"
-			 "#[allow(unused_mut)]"
+			 "#![allow(unused_parens)]"
+			 ;"#[allow(unused_imports)]"
+			 ;"#[allow(unused_variables)]"
+			 ;"#[allow(unused_mut)]"
 			 (use (chrono (curly DateTime Utc)))
 			 ,code)))))

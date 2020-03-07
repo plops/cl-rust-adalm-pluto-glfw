@@ -1,7 +1,4 @@
-#[allow(unused_parens)]
-#[allow(unused_imports)]
-#[allow(unused_variables)]
-#[allow(unused_mut)]
+#![allow(unused_parens)]
 use chrono::{DateTime, Utc};
 #[macro_use]
 extern crate imgui;
