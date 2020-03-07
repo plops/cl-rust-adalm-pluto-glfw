@@ -137,6 +137,61 @@ RUSTFLAGS="-C target-cpu=native -C llvm-args=-cost-kind=latency" cargo bloat --r
 52.5% 100.0%  1.7MiB                       .text section size, the file size is 3.2MiB
 
 
+*** bloaty output
+
+martin@labolg ~/stage/cl-rust-adalm-pluto-glfw/code/target/release $ bloaty code
+     VM SIZE                       FILE SIZE
+ --------------                 --------------
+  72.3%  1.70Mi .text            1.70Mi  52.5%
+   9.7%   234Ki .rodata           234Ki   7.1%
+   0.0%       0 .debug_str        233Ki   7.0%
+   0.0%       0 .debug_info       232Ki   7.0%
+   5.6%   135Ki .bss                  0   0.0%
+   0.0%       0 .strtab           125Ki   3.8%
+   0.0%       0 .debug_ranges     118Ki   3.6%
+   0.0%       0 .debug_line       108Ki   3.3%
+   4.4%   106Ki .eh_frame         106Ki   3.2%
+   0.0%       0 .symtab           101Ki   3.1%
+   3.9%  93.6Ki .rela.dyn        93.6Ki   2.8%
+   0.0%       0 .debug_pubnames  63.2Ki   1.9%
+   1.9%  45.0Ki .data.rel.ro     45.3Ki   1.4%
+   0.0%       0 .debug_pubtypes  37.5Ki   1.1%
+   0.7%  16.2Ki [Other]          20.8Ki   0.6%
+   0.7%  17.7Ki .eh_frame_hdr    17.7Ki   0.5%
+   0.6%  14.2Ki .data            14.2Ki   0.4%
+   0.0%       0 .debug_aranges   8.00Ki   0.2%
+   0.3%  6.16Ki .dynsym          6.16Ki   0.2%
+   0.0%       0 .debug_frame     4.89Ki   0.1%
+   0.0%      54 [Unmapped]       4.05Ki   0.1%
+ 100.0%  2.36Mi TOTAL            3.24Mi 100.0%
+
+martin@labolg ~/stage/cl-rust-adalm-pluto-glfw/code/target/release $ bloaty code_stripped
+     VM SIZE                      FILE SIZE
+ --------------                --------------
+  72.3%  1.70Mi .text           1.70Mi  76.4%
+   9.7%   234Ki .rodata          234Ki  10.3%
+   5.6%   135Ki .bss                 0   0.0%
+   4.4%   106Ki .eh_frame        106Ki   4.7%
+   3.9%  93.6Ki .rela.dyn       93.6Ki   4.1%
+   1.9%  45.0Ki .data.rel.ro    45.3Ki   2.0%
+   0.7%  17.7Ki .eh_frame_hdr   17.7Ki   0.8%
+   0.6%  14.2Ki .data           14.2Ki   0.6%
+   0.3%  6.16Ki .dynsym         6.16Ki   0.3%
+   0.0%      54 [Unmapped]      4.05Ki   0.2%
+   0.2%  3.84Ki .dynstr         3.84Ki   0.2%
+   0.2%  3.73Ki .rela.plt       3.73Ki   0.2%
+   0.1%  2.61Ki .got            2.61Ki   0.1%
+   0.0%     736 [ELF Headers]   2.59Ki   0.1%
+   0.1%  2.50Ki .plt            2.50Ki   0.1%
+   0.0%     634 [Other]           1022   0.0%
+   0.0%     608 .dynamic           608   0.0%
+   0.0%     526 .gnu.version       526   0.0%
+   0.0%     424 .tbss                0   0.0%
+   0.0%     400 .gnu.version_r     400   0.0%
+   0.0%     332 .gnu.hash          332   0.0%
+ 100.0%  2.36Mi TOTAL           2.23Mi 100.0%
+
+
 * On Reducing lag:
 - not yet used
 - https://www.khronos.org/opengl/wiki/Sync_Object
