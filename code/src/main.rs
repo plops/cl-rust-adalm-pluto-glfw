@@ -44,7 +44,7 @@ fn main() {
     let barrier_pipeline_setup = std::sync::Arc::new(std::sync::Barrier::new(3));
     let (s1, r1) = crossbeam_channel::bounded(4);
     let (s2, r2) = crossbeam_channel::bounded(40);
-    let (s_controls, r_controls) = crossbeam_channel::unbounded();
+    let (s_controls, r_controls) = crossbeam_channel::bounded(0);
     // pipeline storage:
     // fftin is filled by sdr_receiver thread and consumed by fft_processor thread
     // fftout is filled by fft_processor and consumed by fft_scaler
@@ -187,6 +187,12 @@ fn main() {
             let mut line_yoffset = 0;
             let mut buffer_fill = 0.;
             imgui.set_ini_filename(None);
+            let devices: Vec<(
+                usize,
+                Option<String>,
+                HashMap<String, String, RandomState>,
+                Vec<(usize, Option<String>, HashMap<String, String, RandomState>)>,
+            )> = r_controls.recv().ok().unwrap();
             while (!(window.should_close())) {
                 let v: Vec<_> = r2.try_iter().collect();
                 buffer_fill = (((1.00e+2) * (v.len() as f32)) / (40.));
@@ -224,16 +230,7 @@ fn main() {
                         ui.text(im_str!("buffer_fill={:?}%", buffer_fill));
                         ui.image(texture_id, [256., 512.]).build();
                     });
-                    let all_devices: Vec<
-                        Vec<(
-                            usize,
-                            Option<String>,
-                            HashMap<String, String, RandomState>,
-                            Vec<(usize, Option<String>, HashMap<String, String, RandomState>)>,
-                        )>,
-                    > = r_controls.try_iter().collect();
-                    let devices = &all_devices[(all_devices.len() - 1)];
-                    for d in devices {
+                    for d in &devices {
                         let title = match &d.1 {
                             Some(x) => im_str!("{}", x),
                             _ => im_str!("{:?}", d.0),
@@ -499,18 +496,20 @@ fn main() {
                     line!()
                 );
             }
-            while (keep_running.load(std::sync::atomic::Ordering::Relaxed)) {
-                let mut devices = Vec::new();
-                for dev_idx in 0..ctx.num_devices() {
-                    let dev = ctx.get_device(dev_idx).unwrap();
-                    let mut channels = Vec::new();
-                    for ch_idx in 0..dev.num_channels() {
-                        let ch = dev.get_channel(ch_idx).unwrap();
-                        channels.push((ch_idx, ch.name(), ch.attr_read_all().unwrap()));
-                    }
-                    devices.push((dev_idx, dev.name(), dev.attr_read_all().unwrap(), channels));
+            let mut sdr_count = 0;
+            let mut devices = Vec::new();
+            for dev_idx in 0..ctx.num_devices() {
+                let dev = ctx.get_device(dev_idx).unwrap();
+                let mut channels = Vec::new();
+                for ch_idx in 0..dev.num_channels() {
+                    let ch = dev.get_channel(ch_idx).unwrap();
+                    channels.push((ch_idx, ch.name(), ch.attr_read_all().unwrap()));
                 }
-                s_controls.send(devices.clone()).unwrap();
+                devices.push((dev_idx, dev.name(), dev.attr_read_all().unwrap(), channels));
+            }
+            s_controls.send(devices.clone()).unwrap();
+            while (keep_running.load(std::sync::atomic::Ordering::Relaxed)) {
+                sdr_count += 1;
                 match buf.refill() {
                     Err(err) => {
                         {
