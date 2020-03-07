@@ -22,6 +22,7 @@ the visualizer imgui is running simultaneously and occasionally (60fps) updates 
 
 * What settings we can change?
 
+  #+begin_example
 martin@labolg ~ $ ssh root@192.168.2.1
 root@192.168.2.1's password: 
 Welcome to:
@@ -44,6 +45,9 @@ calib_mode
 calib_mode_available
 dcxo_tune_coarse
 dcxo_tune_coarse_available
+  
+  #+end_example
+
 
 - we have 5 devices
 - each device has a few channels
@@ -72,9 +76,11 @@ dcxo_tune_coarse_available
 * How to build release:
 
 ** optimzed for latency
-RUSTFLAGS="-C target-cpu=native -C llvm-args=-cost-kind=latency" cargo build --release
+   #+begin_example
+   RUSTFLAGS="-C target-cpu=native -C llvm-args=-cost-kind=latency" cargo build --release
 cargo run --release
 
+   #+end_example
 ** optimized for size
 https://github.com/johnthagen/min-sized-rust
 
@@ -83,7 +89,8 @@ check with https://github.com/RazrFalcon/cargo-bloat
 
 *** largest crates 
 
-RUSTFLAGS="-C target-cpu=native -C llvm-args=-cost-kind=latency" cargo bloat --release --crates
+    #+begin_example
+    RUSTFLAGS="-C target-cpu=native -C llvm-args=-cost-kind=latency" cargo bloat --release --crates
 
    Compiling code v0.1.0 (/home/martin/stage/cl-rust-adalm-pluto-glfw/code)
     Finished release [optimized] target(s) in 1m 12s
@@ -115,9 +122,11 @@ RUSTFLAGS="-C target-cpu=native -C llvm-args=-cost-kind=latency" cargo bloat --r
 
 Note: numbers above are a result of guesswork. They are not 100% correct and never will be.
 
+    #+end_example
 
 *** largest functions
-RUSTFLAGS="-C target-cpu=native -C llvm-args=-cost-kind=latency" cargo bloat --release -n 10
+    #+begin_example
+    RUSTFLAGS="-C target-cpu=native -C llvm-args=-cost-kind=latency" cargo bloat --release -n 10
 
     Finished release [optimized] target(s) in 0.05s
     Analyzing target/release/code
@@ -137,9 +146,11 @@ RUSTFLAGS="-C target-cpu=native -C llvm-args=-cost-kind=latency" cargo bloat --r
 52.5% 100.0%  1.7MiB                       .text section size, the file size is 3.2MiB
 
 
+    #+end_example
 *** bloaty output
 
-martin@labolg ~/stage/cl-rust-adalm-pluto-glfw/code/target/release $ bloaty code
+    #+begin_example
+    martin@labolg ~/stage/cl-rust-adalm-pluto-glfw/code/target/release $ bloaty code
      VM SIZE                       FILE SIZE
  --------------                 --------------
   72.3%  1.70Mi .text            1.70Mi  52.5%
@@ -213,6 +224,9 @@ martin@labolg ~/stage/cl-rust-adalm-pluto-glfw/code/target/release $ ldd code_st
 	libXau.so.6 => /usr/lib64/libXau.so.6 (0x00007f5a2aaaf000)
 	libXdmcp.so.6 => /usr/lib64/libXdmcp.so.6 (0x00007f5a2aaa5000)
 	libbsd.so.0 => /usr/lib64/libbsd.so.0 (0x00007f5a2aa8b000)
+
+    #+end_example
+
 * On Reducing lag:
 - not yet used
 - https://www.khronos.org/opengl/wiki/Sync_Object
