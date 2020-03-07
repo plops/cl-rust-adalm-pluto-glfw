@@ -571,7 +571,8 @@ codegen-units = 1
 
 
 					      (do0
-						 ;; https://wiki.analog.com/resources/tools-software/linux-drivers/iio-transceiver/ad9361#list_chosen_rx_path_rates
+					       ;; https://wiki.analog.com/resources/tools-software/linux-drivers/iio-transceiver/ad9361#list_chosen_rx_path_rates
+					       "// get all device settings and send them to the gui thread"
 						 (let* ((devices (Vec--new)))
 						   (for (dev_idx (slice 0 (ctx.num_devices)))
 							(let ((dev (dot ctx (get_device dev_idx) (unwrap))))

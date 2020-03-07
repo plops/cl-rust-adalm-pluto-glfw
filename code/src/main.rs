@@ -527,6 +527,7 @@ fn main() {
                         line!()
                     );
                 }
+                // get all device settings and send them to the gui thread
                 let mut devices = Vec::new();
                 for dev_idx in 0..ctx.num_devices() {
                     let dev = ctx.get_device(dev_idx).unwrap();
