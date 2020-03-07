@@ -69,6 +69,11 @@ dcxo_tune_coarse_available
   |         | https://users.rust-lang.org/t/solved-how-to-move-non-send-between-threads-or-an-alternative/19928               |                                       |
 
 
+* How to build release:
+
+RUSTFLAGS="-C target-cpu=native -C llvm-args=-cost-kind=latency" cargo build --release
+cargo run --release
+
 * On Reducing lag:
 - not yet used
 - https://www.khronos.org/opengl/wiki/Sync_Object

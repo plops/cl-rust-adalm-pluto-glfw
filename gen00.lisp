@@ -356,7 +356,7 @@ panic = \"abort\"
 								 (ui.separator))
 							    )))))))
 					    
-					    (ui.show_demo_window "&mut true")
+					    ;(ui.show_demo_window "&mut true")
 					    (imgui_glfw.draw ui "&mut window")))
 					(window.swap_buffers)
 					(glfw.poll_events)

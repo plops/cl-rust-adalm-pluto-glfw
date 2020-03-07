@@ -248,7 +248,6 @@ fn main() {
                                 }
                             });
                         }
-                        ui.show_demo_window(&mut true);
                         imgui_glfw.draw(ui, &mut window);
                     }
                     window.swap_buffers();
