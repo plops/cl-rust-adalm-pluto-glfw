@@ -663,11 +663,15 @@ panic = \"abort\"
 					  (name (dot (string ,name) (into)))
 					  (spawn (space (lambda (_)
 							  (let ((wg (barrier_pipeline_setup.clone)))
-							    ,code)))))))))))
-		       #+nil ,@(loop for (name code) in l collect
-			      `(do0
-				(dot ,(format nil "thread_~a" name)
-				     (join))))))))))))))
+							    ,code))))
+					  (unwrap_or_else
+					   (lambda (err_)
+					     ,(logprint (format nil "couldnt spawn ~a thread" name) `())
+					     (std--process--exit 1))))))))
+			 (unwrap_or_else
+			  (lambda (err_)
+			    ,(logprint (format nil "couldn't crossbeam scope") `())
+			    (std--process--exit 1)))))))))))))))
 
 
   (loop for e in (reverse *module*) and i from 0 do
