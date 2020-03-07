@@ -62,9 +62,12 @@ industrial-io = \"*\" # 0.2.0
 fftw = \"*\"
 num-complex = \"*\"
 
-# this shaves 1MB off the binary (cargo build --release)
 [profile.release]
 panic = \"abort\"
+lto = true
+codegen-units = 1
+# opt-level = \"3\"
+# opt-level = \"z\"
 "
 
 

@@ -71,8 +71,71 @@ dcxo_tune_coarse_available
 
 * How to build release:
 
+** optimzed for latency
 RUSTFLAGS="-C target-cpu=native -C llvm-args=-cost-kind=latency" cargo build --release
 cargo run --release
+
+** optimized for size
+https://github.com/johnthagen/min-sized-rust
+
+check with https://github.com/RazrFalcon/cargo-bloat
+
+
+*** largest crates 
+
+RUSTFLAGS="-C target-cpu=native -C llvm-args=-cost-kind=latency" cargo bloat --release --crates
+
+   Compiling code v0.1.0 (/home/martin/stage/cl-rust-adalm-pluto-glfw/code)
+    Finished release [optimized] target(s) in 1m 12s
+    Analyzing target/release/code
+
+ File  .text     Size Crate
+32.2%  61.2%   1.0MiB [Unknown]
+ 4.6%   8.7% 151.9KiB imgui_sys
+ 4.1%   7.9% 137.5KiB std
+ 2.0%   3.9%  67.9KiB glfw
+ 1.7%   3.2%  56.4KiB code
+ 1.3%   2.4%  42.6KiB gl
+ 1.1%   2.1%  36.9KiB rustc_demangle
+ 1.0%   1.9%  32.9KiB fftw_src
+ 0.9%   1.7%  30.2KiB imgui_opengl_renderer
+ 0.9%   1.6%  28.3KiB crossbeam_channel
+ 0.7%   1.2%  21.7KiB crossbeam_utils
+ 0.5%   1.0%  16.9KiB backtrace
+ 0.5%   0.9%  15.4KiB backtrace_sys
+ 0.2%   0.3%   5.2KiB parking_lot_core
+ 0.1%   0.2%   2.8KiB parking_lot
+ 0.1%   0.2%   2.6KiB industrial_io
+ 0.1%   0.1%   2.2KiB chrono
+ 0.1%   0.1%   2.0KiB rand_os
+ 0.0%   0.1%   1.6KiB rand_jitter
+ 0.0%   0.0%     720B rand_core
+ 0.1%   0.1%   1.8KiB And 6 more crates. Use -n N to show more.
+52.5% 100.0%   1.7MiB .text section size, the file size is 3.2MiB
+
+Note: numbers above are a result of guesswork. They are not 100% correct and never will be.
+
+
+*** largest functions
+RUSTFLAGS="-C target-cpu=native -C llvm-args=-cost-kind=latency" cargo bloat --release -n 10
+
+    Finished release [optimized] target(s) in 0.05s
+    Analyzing target/release/code
+
+ File  .text    Size                 Crate Name
+ 1.3%   2.4% 42.5KiB                    gl gl::load_with::inner
+ 0.9%   1.7% 30.1KiB imgui_opengl_renderer imgui_opengl_renderer::gl::Gl::load_with
+ 0.9%   1.7% 28.9KiB                  code code::main::{{closure}}::{{closure}}
+ 0.8%   1.6% 27.5KiB             [Unknown] t2_64
+ 0.8%   1.5% 26.0KiB                  code code::main
+ 0.7%   1.4% 23.6KiB             [Unknown] hb_64
+ 0.7%   1.3% 23.0KiB             [Unknown] t1_64
+ 0.7%   1.3% 22.3KiB             [Unknown] hf_64
+ 0.6%   1.1% 18.9KiB             [Unknown] r2cf_128
+ 0.6%   1.1% 18.8KiB             [Unknown] r2cb_128
+44.1%  83.9%  1.4MiB                       And 2269 smaller methods. Use -n N to show more.
+52.5% 100.0%  1.7MiB                       .text section size, the file size is 3.2MiB
+
 
 * On Reducing lag:
 - not yet used
