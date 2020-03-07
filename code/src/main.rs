@@ -134,7 +134,7 @@ fn main() {
                     println!("{} {}:{} gui starts ", Utc::now(), file!(), line!());
                 }
                 let (mut window, events) = glfw
-                    .create_window(512, 512, "glfw win", glfw::WindowMode::Windowed)
+                    .create_window(1400, 786, "glfw win", glfw::WindowMode::Windowed)
                     .expect("failed to create glfw window");
                 window.make_current();
                 window.set_all_polling(true);
@@ -181,17 +181,6 @@ fn main() {
                 let mut imgui_glfw = imgui_glfw_rs::ImguiGLFW::new(&mut imgui, &mut window);
                 let mut line_yoffset = 0;
                 let mut buffer_fill;
-                let ini_fn = imgui::ImStr::new("imgui.ini");
-                {
-                    println!(
-                        "{} {}:{} imgui ini  ini_fn={:?}",
-                        Utc::now(),
-                        file!(),
-                        line!(),
-                        ini_fn
-                    );
-                }
-                imgui.set_ini_filename(ini_fn);
                 let devices: Vec<(
                     usize,
                     Option<String>,
