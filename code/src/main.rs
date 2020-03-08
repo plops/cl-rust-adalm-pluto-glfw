@@ -169,6 +169,16 @@ fn main() {
                 let mut buffer_fill ;
                                 let devices: Vec<(usize, Option<String>, HashMap<String, String, RandomState>, Vec<(usize, Option<String>, HashMap<String, String, RandomState>)>)>  = r_controls.recv().ok().unwrap();
                 while (!(window.should_close())) {
+                                                            let freq  = r_perform_controls.try_recv();
+                    match freq {
+                                                Err(x) => {
+},
+                                                Ok(value) => {
+                                                {
+                                                println!("{} {}:{} val  value={:?}", Utc::now(), file!(), line!(), value);
+}
+},
+};
                                                             let v: Vec<_>  = r2.try_iter().collect();
                                         buffer_fill=((((1.00e+2)*((v.len() as f32))))/(40.    ));
                     // each response received on r2 is a line that will be written into the texture

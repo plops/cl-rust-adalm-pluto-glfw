@@ -254,6 +254,16 @@ codegen-units = 1
 				      (while (not (window.should_close))
 					
 
+					(let ((freq
+					       (dot r_perform_controls
+						    (try_recv)
+						    )))
+					  (case freq
+					    ((Err x)
+					     )
+					    ((Ok value)
+					     ,(logprint "val" `(value)))))
+					
 					(let ((v (dot r2
 						      (try_iter)
 						      (collect))))
