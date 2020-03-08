@@ -16,6 +16,10 @@ https://github.com/plops/cl-rust-adalm-pluto-glfw/releases/tag/first_useful_gui
 
 It assumes you have a pluto connected as 192.168.2.1
 
+Note:
+I actually didn't write the code in Rust but in a language that resembles Common Lisp and is converted into Rust using this: 
+[[https://github.com/plops/cl-rust-generator/]]
+
 
 * Getting repo and building from source
 
