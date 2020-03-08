@@ -2,6 +2,41 @@
 Screen recording:
 [[https://github.com/plops/cl-rust-adalm-pluto-glfw/blob/master/doc/screen_pluto-2020-03-08_16.48.32.mkv?raw=true]]
 
+* Introduction
+
+Is code is an experiment in Rust. I tried to create a minimal GUI for the Adalm Pluto software defined radio.
+
+Currently it reads IQ data and shows the FFT as a waterfall diagram. The frequency of the RX local oscillator can be changed with a slider.
+
+This software requires the industrial-io crate which apparently only works in Linux.
+
+
+A binary can be downloaded here:
+https://github.com/plops/cl-rust-adalm-pluto-glfw/releases/tag/first_useful_gui
+
+It assumes you have a pluto connected as 192.168.2.1
+
+
+* Getting repo and building from source
+
+You'll need Rust and cargo [[https://doc.rust-lang.org/cargo/getting-started/installation.html]]
+
+
+Which apparently can be installed like this. Looks scary to me, be careful running a script from the web like this.
+
+#+begin_src 
+curl https://sh.rustup.rs -sSf | sh
+#+end_src
+
+  #+begin_src 
+
+git clone https://github.com/plops/cl-rust-adalm-pluto-glfw
+cd cl-rust-adalm-pluto-glfw/code/
+cargo run 
+  #+end_src
+
+
+
 
 * Architecture:
 
