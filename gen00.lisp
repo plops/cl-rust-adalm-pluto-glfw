@@ -326,21 +326,27 @@ codegen-units = 1
 					;(ui.text (string "bla2"))
 							  (do0
 							   "static mut g_frequency: i32 = 70000;"
-							   (let* ((frequency))
-							     (space unsafe (curly (setf frequency g_frequency)))
-							     (dot (ui.slider_int (im_str! (string "frequency"))
-									     "&mut frequency"
-									     70000
-									     6000000)
-								  (build))
-							     (unless (space unsafe (curly (== frequency g_frequency)))
-							       (space unsafe
-								      (curly
-								       (setf g_frequency frequency)))
-							       #+nil ,(logprint "slider" `(frequency))
-							       (dot s_perform_controls
-								    (send frequency)
-								    (unwrap)))))
+							   (progn
+							     (let* ((frequency))
+							      (space unsafe (curly (setf frequency g_frequency)))
+							      (dot (ui.slider_int (im_str! (string "frequency"))
+										  "&mut frequency"
+										  70000
+										  120000)
+								   (build))
+							      (unless (space unsafe (curly (== frequency g_frequency)))
+								(space unsafe
+								       (curly
+									(setf g_frequency frequency)))
+								#+nil ,(logprint "slider" `(frequency))
+								(dot s_perform_controls
+								     (send (* (coerce 1000 f64) (coerce frequency f64)))
+								     (unwrap)))))
+
+							   
+							   
+
+							   )
 							  (ui.text (im_str! (string "buffer_fill={:?}%" ) buffer_fill))
 							  (dot (ui.image texture_id (list ,(* 1s0 tex-width)
 											  ,(* 1s0 tex-height)))
@@ -596,7 +602,7 @@ codegen-units = 1
 					    "/* NOTE:By passing NULL as the 'attr' argument to iio_device_attr_write, it is now possible to write all of the attributes of a device. The buffer must contain one block of data per attribute of the device, by the order they appear in the iio_device structure. The first four bytes of one block correspond to a 32-bit signed value in network order. If negative, the attribute is not written; if positive, it corresponds to the length of the data to write. In that case, the rest of the block must contain the data. */"
 					    
 					    ,(logprint "sdr_reader loop starts" `())
-					    (do0 ;let* ((sdr_count 0))
+					    (let* ((sdr_count 0))
 
 
 					      (do0
@@ -647,70 +653,74 @@ codegen-units = 1
 					      #+nil(dot buf
 						   (set_blocking_mode true)
 						   (unwrap))
-					     (while (dot keep_running (load std--sync--atomic--Ordering--Relaxed)) 
+					      (let* ((g_freq (coerce 70000000 f64)))
+					       (while (dot keep_running (load std--sync--atomic--Ordering--Relaxed)) 
 
 
-					       (let ((freq
-					       (dot r_perform_controls
-						    (try_recv)
-						    )))
-					  (case freq
-					    ((Err x)
-					     )
-					    ((Ok value)
-					     (let ((rx_lo (dot phy (get_channel 3) (unwrap)))
-						   ;(rx_lo_frequency (dot rx_lo (get_attr 5)))
-						   )
-					       (dot rx_lo (attr_write_int (string "frequency")
-									  (* 1000 (coerce value i64))))
-					       ;,(logprint "phy" `(rx_lo_frequency))
-					       ))))
+						 (let ((freq
+							(dot r_perform_controls
+							     (try_recv)
+							     )))
+						   (case freq
+						     ((Err x)
+						      )
+						     ((Ok value)
+						      (setf g_freq value)
+						      #+nl(let ((rx_lo (dot phy (get_channel 3) (unwrap))))
+							(dot rx_lo (attr_write_float (string "frequency")
+										     value)))
+						      ,(logprint "freq" `(g_freq)))))
 					       
-					       ;(incf sdr_count)
+						 (incf sdr_count)
+					       
+						 (let ((rx_lo (dot phy (get_channel 3) (unwrap)))
+						       (new_freq (+ g_freq (coerce (* 1000 sdr_count) f64))))
+						   ,(logprint "freq" `(new_freq))
+						   (dot rx_lo (attr_write_int (string "frequency")
+									      (coerce new_freq i64)))
+						   )
+						 (when (< (/ ,tex-height 4) sdr_count)
+						   (setf sdr_count 0))
 
-					       #+nil
-					       (when (== 0 (% sdr_count 100))
-						)
-
-					       #+nil (if (== 0 (dot buf
-							   (poll_fd)
-							   (unwrap)))
-						   ,(logprint "would block" `())
-						   ,(logprint "would not block" `()))
-					       (case (buf.refill)
-						 ((Err err)
-						  ,(logprint "error filling buffer" `(err))
-						  (std--process--exit 4))
-						 (t "()"))
-					       (progn
-						 (let ((time_acquisition (Utc--now)))
-						   (let ((ha (dot (aref fftin count)
-								   (clone)))
-							  (a (space "&mut" (dot ha
-										(lock)
-										(unwrap)))))
-						     (let ((data_i (dot buf
-									(channel_iter--<i16> (ref (aref chans 0)))
-									(collect)))
-							   (data_q (dot buf
-									(channel_iter--<i16> (ref (aref chans 1)))
-									(collect))))
-						       (declare (type Vec<i16> data_i data_q))
-						       (do0
-							(setf a.timestamp time_acquisition)
-							(for (i (slice 0 ,n-samples))
-							     (setf (aref a.ptr i) (fftw--types--c64--new (coerce (aref data_i i)
-														 f64)
-													 (coerce (aref data_q i)
-														 f64)))))))))
-					       #+nil ,(logprint "sdr_reader" `(count ))
-					       (dot s0
-						    (send count)
-						    (unwrap))
-					       (do0
-						(incf count)
-						(when (<= ,n-buf count)
-						  (setf count 0))))))))))))))
+						 #+nil (if (== 0 (dot buf
+								      (poll_fd)
+								      (unwrap)))
+							   ,(logprint "would block" `())
+							   ,(logprint "would not block" `()))
+						 (case (buf.refill)
+						   ((Err err)
+						    ,(logprint "error filling buffer" `(err))
+						    (std--process--exit 4))
+						   (t "()"))
+						 (progn
+						   (let ((time_acquisition (Utc--now)))
+						     (let ((ha (dot (aref fftin count)
+								    (clone)))
+							   (a (space "&mut" (dot ha
+										 (lock)
+										 (unwrap)))))
+						       (let ((data_i (dot buf
+									  (channel_iter--<i16> (ref (aref chans 0)))
+									  (collect)))
+							     (data_q (dot buf
+									  (channel_iter--<i16> (ref (aref chans 1)))
+									  (collect))))
+							 (declare (type Vec<i16> data_i data_q))
+							 (do0
+							  (setf a.timestamp time_acquisition)
+							  (for (i (slice 0 ,n-samples))
+							       (setf (aref a.ptr i) (fftw--types--c64--new (coerce (aref data_i i)
+														   f64)
+													   (coerce (aref data_q i)
+														   f64)))))))))
+						 #+nil ,(logprint "sdr_reader" `(count ))
+						 (dot s0
+						      (send count)
+						      (unwrap))
+						 (do0
+						  (incf count)
+						  (when (<= ,n-buf count)
+						    (setf count 0)))))))))))))))
 			      )))
 
 		     

@@ -193,13 +193,15 @@ fn main() {
                         ui.show_metrics_window(&mut true);
                         imgui::Window::new(&ui, im_str!("waterfall fft")).build(||{
                                                                                     static mut g_frequency: i32 = 70000;
-                                                        let mut frequency ;
-                            unsafe {                            frequency=g_frequency;}
-                            ui.slider_int(im_str!("frequency"), &mut frequency, 70000, 6000000).build();
-                            if  !(unsafe {(frequency)==(g_frequency)})  {
-                                                                                                unsafe {                                g_frequency=frequency;}
-                                s_perform_controls.send(frequency).unwrap();
+                            {
+                                                                                                let mut frequency ;
+                                unsafe {                                frequency=g_frequency;}
+                                ui.slider_int(im_str!("frequency"), &mut frequency, 70000, 120000).build();
+                                if  !(unsafe {(frequency)==(g_frequency)})  {
+                                                                                                            unsafe {                                    g_frequency=frequency;}
+                                    s_perform_controls.send((((1000 as f64))*((frequency as f64)))).unwrap();
 };
+}
                                                         ui.text(im_str!("buffer_fill={:?}%", buffer_fill));
                                                         ui.image(texture_id, [256.    , 512.    ]).build();
 });
@@ -419,7 +421,8 @@ fn main() {
                 {
                                         println!("{} {}:{} sdr_reader loop starts ", Utc::now(), file!(), line!());
 }
-                                                // get all device settings and send them to the gui thread
+                                let mut sdr_count  = 0;
+                                // get all device settings and send them to the gui thread
                                 let mut devices  = Vec::new();
                 for  dev_idx in 0..ctx.num_devices() {
                                                             let dev  = ctx.get_device(dev_idx).unwrap();
@@ -431,15 +434,28 @@ fn main() {
                     devices.push((dev_idx, dev.name(), dev.attr_read_all().unwrap(), channels));
 }
                 s_controls.send(devices.clone()).unwrap();
+                                let mut g_freq  = (70000000 as f64);
                 while (keep_running.load(std::sync::atomic::Ordering::Relaxed)) {
                                                             let freq  = r_perform_controls.try_recv();
                     match freq {
                                                 Err(x) => {
 },
                                                 Ok(value) => {
-                                                                    let rx_lo  = phy.get_channel(3).unwrap();
-                    rx_lo.attr_write_int("frequency", ((1000)*((value as i64))));
+                                                                    g_freq=value;
+                                                {
+                                                println!("{} {}:{} freq  g_freq={:?}", Utc::now(), file!(), line!(), g_freq);
+}
 },
+};
+                                        sdr_count += 1 ;
+                                                            let rx_lo  = phy.get_channel(3).unwrap();
+                    let new_freq  = (g_freq+(((1000)*(sdr_count)) as f64));
+                    {
+                                                println!("{} {}:{} freq  new_freq={:?}", Utc::now(), file!(), line!(), new_freq);
+}
+                    rx_lo.attr_write_int("frequency", (new_freq as i64));
+                                        if  ((512)/(4))<sdr_count  {
+                                                                                                sdr_count=0;
 };
                                         match buf.refill() {
                                                 Err(err) => {
