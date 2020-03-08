@@ -1,6 +1,6 @@
-[https://github.com/plops/cl-rust-adalm-pluto-glfw/blob/master/doc/2020-03-08-165218_1405x810_scrot.png?raw=true]
+[[https://github.com/plops/cl-rust-adalm-pluto-glfw/blob/master/doc/2020-03-08-165218_1405x810_scrot.png?raw=true]]
 Screen recording:
-[https://github.com/plops/cl-rust-adalm-pluto-glfw/blob/master/doc/screen_pluto-2020-03-08_16.48.32.mkv?raw=true]
+[[https://github.com/plops/cl-rust-adalm-pluto-glfw/blob/master/doc/screen_pluto-2020-03-08_16.48.32.mkv?raw=true]]
 
 
 * Architecture:
