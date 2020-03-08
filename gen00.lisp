@@ -141,6 +141,7 @@ codegen-units = 1
 		    ((values s1 r1) (crossbeam_channel--bounded ,n-buf)) ;; fft_processor -> fft_scaler
 		    ((values s2 r2) (crossbeam_channel--bounded ,n-buf-out)) ;; fft_scaler -> gui/opengl
 		    ((values s_controls r_controls) (crossbeam_channel--bounded 0)) ;; sdr_receiver -> gui
+		    ((values s_perform_controls r_perform_controls) (crossbeam_channel--bounded 3)) ;; gui -> sdr_receiver
 		    
 		    ) 
 		"// pipeline storage:"
@@ -313,6 +314,26 @@ codegen-units = 1
 					  (let ((ui (imgui_glfw.frame "&mut window"
 								      "&mut imgui")))
 					    (ui.show_metrics_window "&mut true")
+
+					    (dot (imgui--Window--new &ui (im_str! (string "control") ))
+						 (build (lambda ()
+							  "static mut g_frequency: i32 = 70000000;"
+							  (let* ((frequency))
+							    (space unsafe (curly (setf frequency g_frequency)))
+							    (ui.slider_int (im_str! (string "frequency"))
+									   "&mut frequency"
+									   700000
+									   ,(- (expt 2 (- 32 1))
+									       1))
+							    (unless (space unsafe (curly (== frequency g_frequency)))
+							      (space unsafe
+								     (curly
+								      (setf g_frequency frequency)))
+							      ,(logprint "slider" `(frequency))
+							      (dot s_perform_controls
+								   (send frequency)
+								   (unwrap)))))))
+					    
 					    (dot (imgui--Window--new &ui (im_str! (string "waterfall fft") ))
 						 (build (lambda ()
 					;(ui.text (string "bla2"))
@@ -566,8 +587,9 @@ codegen-units = 1
 					     ,(logprint "sdr_reader waits for other pipeline threads" `())
 					     (wg.wait)
 					     )
-					    
-
+					    "//  /sys/bus/iio/devices/iio:device1/out_altvoltage0_RX_LO_frequency"
+					    "// https://analogdevicesinc.github.io/libiio/group__Device.html#ga81b3ad843d0e4b2e8857c0205e9fbb07"
+					    "/* NOTE:By passing NULL as the 'attr' argument to iio_device_attr_write, it is now possible to write all of the attributes of a device. The buffer must contain one block of data per attribute of the device, by the order they appear in the iio_device structure. The first four bytes of one block correspond to a 32-bit signed value in network order. If negative, the attribute is not written; if positive, it corresponds to the length of the data to write. In that case, the rest of the block must contain the data. */"
 					    
 					    ,(logprint "sdr_reader loop starts" `())
 					    (do0 ;let* ((sdr_count 0))
@@ -618,6 +640,9 @@ codegen-units = 1
 				     
 						 )
 					      
+					      #+nil(dot buf
+						   (set_blocking_mode true)
+						   (unwrap))
 					     (while (dot keep_running (load std--sync--atomic--Ordering--Relaxed)) 
 
 					       ;(incf sdr_count)
@@ -626,7 +651,11 @@ codegen-units = 1
 					       (when (== 0 (% sdr_count 100))
 						)
 
-
+					       #+nil (if (== 0 (dot buf
+							   (poll_fd)
+							   (unwrap)))
+						   ,(logprint "would block" `())
+						   ,(logprint "would not block" `()))
 					       (case (buf.refill)
 						 ((Err err)
 						  ,(logprint "error filling buffer" `(err))
