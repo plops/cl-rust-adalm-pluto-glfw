@@ -254,16 +254,7 @@ codegen-units = 1
 				      (while (not (window.should_close))
 					
 
-					(let ((freq
-					       (dot r_perform_controls
-						    (try_recv)
-						    )))
-					  (case freq
-					    ((Err x)
-					     )
-					    ((Ok value)
-					     
-					     #+nil ,(logprint "recv val" `(value)))))
+					
 					
 					(let ((v (dot r2
 						      (try_iter)
@@ -556,7 +547,7 @@ codegen-units = 1
 					     (println! (string "trigger {}")
 						       s))))
 				  (let (,@ (loop for (var name) in `((dev cf-ad9361-lpc)
-								     ;(phy ad9361-phy)
+								     (phy ad9361-phy)
 								     )
 					      collect
 						`(,var (dot ctx
@@ -658,6 +649,23 @@ codegen-units = 1
 						   (unwrap))
 					     (while (dot keep_running (load std--sync--atomic--Ordering--Relaxed)) 
 
+
+					       (let ((freq
+					       (dot r_perform_controls
+						    (try_recv)
+						    )))
+					  (case freq
+					    ((Err x)
+					     )
+					    ((Ok value)
+					     (let ((rx_lo (dot phy (get_channel 3) (unwrap)))
+						   ;(rx_lo_frequency (dot rx_lo (get_attr 5)))
+						   )
+					       (dot rx_lo (attr_write_int (string "frequency")
+									  (* 1000 (coerce value i64))))
+					       ;,(logprint "phy" `(rx_lo_frequency))
+					       ))))
+					       
 					       ;(incf sdr_count)
 
 					       #+nil

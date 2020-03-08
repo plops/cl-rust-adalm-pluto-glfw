@@ -169,13 +169,6 @@ fn main() {
                 let mut buffer_fill ;
                                 let devices: Vec<(usize, Option<String>, HashMap<String, String, RandomState>, Vec<(usize, Option<String>, HashMap<String, String, RandomState>)>)>  = r_controls.recv().ok().unwrap();
                 while (!(window.should_close())) {
-                                                            let freq  = r_perform_controls.try_recv();
-                    match freq {
-                                                Err(x) => {
-},
-                                                Ok(value) => {
-},
-};
                                                             let v: Vec<_>  = r2.try_iter().collect();
                                         buffer_fill=((((1.00e+2)*((v.len() as f32))))/(40.    ));
                     // each response received on r2 is a line that will be written into the texture
@@ -382,6 +375,12 @@ fn main() {
 }
                                         std::process::exit(2);
 });
+                let phy  = ctx.find_device("ad9361-phy").unwrap_or_else(||{
+                                        {
+                                                println!("{} {}:{} no device named ad9361-phy ", Utc::now(), file!(), line!());
+}
+                                        std::process::exit(2);
+});
                                 let mut nchan  = 0;
                 for  mut chan in dev.channels() {
                                         if  (Some(std::any::TypeId::of::<i16>()))==(chan.type_of())  {
@@ -433,6 +432,15 @@ fn main() {
 }
                 s_controls.send(devices.clone()).unwrap();
                 while (keep_running.load(std::sync::atomic::Ordering::Relaxed)) {
+                                                            let freq  = r_perform_controls.try_recv();
+                    match freq {
+                                                Err(x) => {
+},
+                                                Ok(value) => {
+                                                                    let rx_lo  = phy.get_channel(3).unwrap();
+                    rx_lo.attr_write_int("frequency", ((1000)*((value as i64))));
+},
+};
                                         match buf.refill() {
                                                 Err(err) => {
                                                 {
