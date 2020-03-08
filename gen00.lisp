@@ -332,7 +332,7 @@ codegen-units = 1
 							      (dot (ui.slider_int (im_str! (string "frequency"))
 										  "&mut frequency"
 										  70000
-										  120000)
+										  1200000)
 								   (build))
 							      (unless (space unsafe (curly (== frequency g_frequency)))
 								(space unsafe
@@ -440,8 +440,9 @@ codegen-units = 1
 								 (unwrap)))))
 					;,(logprint "fft_scaler" `(tup b.timestamp))
 
-					  (let ((scale (/ 23s0 (coerce ,n-samples f32)))
-						(offset -.9s0))
+					  (let ((scale (/
+							43s0 (coerce ,n-samples f32)))
+						(offset -2.3s0))
 					    "// convert complex fft results to log of magnitude, apply scale and offset and preform fftshift"
 					    (for (i (slice 0 ,(/ n-samples 2)))
 						 (setf (aref c (+ i ,(- (/ n-samples 2) 1)))
@@ -666,20 +667,21 @@ codegen-units = 1
 						      )
 						     ((Ok value)
 						      (setf g_freq value)
-						      #+nl(let ((rx_lo (dot phy (get_channel 3) (unwrap))))
+						      #+nil (let ((rx_lo (dot phy (get_channel 3) (unwrap))))
 							(dot rx_lo (attr_write_float (string "frequency")
 										     value)))
-						      ,(logprint "freq" `(g_freq)))))
+						      ;,(logprint "freq" `(g_freq))
+						      )))
 					       
 						 (incf sdr_count)
 					       
 						 (let ((rx_lo (dot phy (get_channel 3) (unwrap)))
 						       (new_freq (+ g_freq (coerce (* 1000 sdr_count) f64))))
-						   ,(logprint "freq" `(new_freq))
+						   ;,(logprint "freq" `(new_freq))
 						   (dot rx_lo (attr_write_int (string "frequency")
 									      (coerce new_freq i64)))
 						   )
-						 (when (< (/ ,tex-height 4) sdr_count)
+						 (when (<= (/ ,tex-height 4) sdr_count)
 						   (setf sdr_count 0))
 
 						 #+nil (if (== 0 (dot buf

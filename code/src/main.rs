@@ -196,7 +196,7 @@ fn main() {
                             {
                                                                                                 let mut frequency ;
                                 unsafe {                                frequency=g_frequency;}
-                                ui.slider_int(im_str!("frequency"), &mut frequency, 70000, 120000).build();
+                                ui.slider_int(im_str!("frequency"), &mut frequency, 70000, 1200000).build();
                                 if  !(unsafe {(frequency)==(g_frequency)})  {
                                                                                                             unsafe {                                    g_frequency=frequency;}
                                     s_perform_controls.send((((1000 as f64))*((frequency as f64)))).unwrap();
@@ -280,8 +280,8 @@ fn main() {
                     let c  = &mut hc.lock().unwrap();
                                         let hb  = fftout[tup].clone();
                     let b  = & hb.lock().unwrap();
-                                        let scale  = ((23.    )/((256 as f32)));
-                    let offset  = (-0.90    );
+                                        let scale  = ((43.    )/((256 as f32)));
+                    let offset  = (-2.30    );
                     // convert complex fft results to log of magnitude, apply scale and offset and preform fftshift
                     for  i in 0..128 {
                                                                         c[(i+127)]=(offset+((scale)*(((((b.ptr[i].re)*(b.ptr[i].re))+((b.ptr[i].im)*(b.ptr[i].im))).ln() as f32))));
@@ -442,19 +442,13 @@ fn main() {
 },
                                                 Ok(value) => {
                                                                     g_freq=value;
-                                                {
-                                                println!("{} {}:{} freq  g_freq={:?}", Utc::now(), file!(), line!(), g_freq);
-}
 },
 };
                                         sdr_count += 1 ;
                                                             let rx_lo  = phy.get_channel(3).unwrap();
                     let new_freq  = (g_freq+(((1000)*(sdr_count)) as f64));
-                    {
-                                                println!("{} {}:{} freq  new_freq={:?}", Utc::now(), file!(), line!(), new_freq);
-}
                     rx_lo.attr_write_int("frequency", (new_freq as i64));
-                                        if  ((512)/(4))<sdr_count  {
+                                        if  (((512)/(4)))<=(sdr_count)  {
                                                                                                 sdr_count=0;
 };
                                         match buf.refill() {
