@@ -262,7 +262,8 @@ codegen-units = 1
 					    ((Err x)
 					     )
 					    ((Ok value)
-					     ,(logprint "val" `(value)))))
+					     
+					     #+nil ,(logprint "recv val" `(value)))))
 					
 					(let ((v (dot r2
 						      (try_iter)
@@ -325,28 +326,30 @@ codegen-units = 1
 								      "&mut imgui")))
 					    (ui.show_metrics_window "&mut true")
 
-					    (dot (imgui--Window--new &ui (im_str! (string "control") ))
+					    #+nil(dot (imgui--Window--new &ui (im_str! (string "control") ))
 						 (build (lambda ()
-							  "static mut g_frequency: i32 = 70000000;"
-							  (let* ((frequency))
-							    (space unsafe (curly (setf frequency g_frequency)))
-							    (ui.slider_int (im_str! (string "frequency"))
-									   "&mut frequency"
-									   700000
-									   ,(- (expt 2 (- 32 1))
-									       1))
-							    (unless (space unsafe (curly (== frequency g_frequency)))
-							      (space unsafe
-								     (curly
-								      (setf g_frequency frequency)))
-							      ,(logprint "slider" `(frequency))
-							      (dot s_perform_controls
-								   (send frequency)
-								   (unwrap)))))))
+							  )))
 					    
 					    (dot (imgui--Window--new &ui (im_str! (string "waterfall fft") ))
 						 (build (lambda ()
 					;(ui.text (string "bla2"))
+							  (do0
+							   "static mut g_frequency: i32 = 70000;"
+							   (let* ((frequency))
+							     (space unsafe (curly (setf frequency g_frequency)))
+							     (dot (ui.slider_int (im_str! (string "frequency"))
+									     "&mut frequency"
+									     70000
+									     6000000)
+								  (build))
+							     (unless (space unsafe (curly (== frequency g_frequency)))
+							       (space unsafe
+								      (curly
+								       (setf g_frequency frequency)))
+							       #+nil ,(logprint "slider" `(frequency))
+							       (dot s_perform_controls
+								    (send frequency)
+								    (unwrap)))))
 							  (ui.text (im_str! (string "buffer_fill={:?}%" ) buffer_fill))
 							  (dot (ui.image texture_id (list ,(* 1s0 tex-width)
 											  ,(* 1s0 tex-height)))

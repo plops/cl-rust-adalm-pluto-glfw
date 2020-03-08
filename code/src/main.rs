@@ -174,9 +174,6 @@ fn main() {
                                                 Err(x) => {
 },
                                                 Ok(value) => {
-                                                {
-                                                println!("{} {}:{} val  value={:?}", Utc::now(), file!(), line!(), value);
-}
 },
 };
                                                             let v: Vec<_>  = r2.try_iter().collect();
@@ -201,20 +198,15 @@ fn main() {
                                         {
                                                                         let ui  = imgui_glfw.frame(&mut window, &mut imgui);
                         ui.show_metrics_window(&mut true);
-                        imgui::Window::new(&ui, im_str!("control")).build(||{
-                                                        static mut g_frequency: i32 = 70000000;
-                                                                                    let mut frequency ;
+                        imgui::Window::new(&ui, im_str!("waterfall fft")).build(||{
+                                                                                    static mut g_frequency: i32 = 70000;
+                                                        let mut frequency ;
                             unsafe {                            frequency=g_frequency;}
-                            ui.slider_int(im_str!("frequency"), &mut frequency, 700000, 2147483647);
+                            ui.slider_int(im_str!("frequency"), &mut frequency, 70000, 6000000).build();
                             if  !(unsafe {(frequency)==(g_frequency)})  {
                                                                                                 unsafe {                                g_frequency=frequency;}
-                                {
-                                                                        println!("{} {}:{} slider  frequency={:?}", Utc::now(), file!(), line!(), frequency);
-}
                                 s_perform_controls.send(frequency).unwrap();
 };
-});
-                        imgui::Window::new(&ui, im_str!("waterfall fft")).build(||{
                                                         ui.text(im_str!("buffer_fill={:?}%", buffer_fill));
                                                         ui.image(texture_id, [256.    , 512.    ]).build();
 });
