@@ -421,8 +421,7 @@ fn main() {
                 {
                                         println!("{} {}:{} sdr_reader loop starts ", Utc::now(), file!(), line!());
 }
-                                let mut sdr_count  = 0;
-                                // get all device settings and send them to the gui thread
+                                                // get all device settings and send them to the gui thread
                                 let mut devices  = Vec::new();
                 for  dev_idx in 0..ctx.num_devices() {
                                                             let dev  = ctx.get_device(dev_idx).unwrap();
@@ -442,14 +441,9 @@ fn main() {
 },
                                                 Ok(value) => {
                                                                     g_freq=value;
+                                                                    let rx_lo  = phy.get_channel(3).unwrap();
+                    rx_lo.attr_write_int("frequency", (value as i64));
 },
-};
-                                        sdr_count += 1 ;
-                                                            let rx_lo  = phy.get_channel(3).unwrap();
-                    let new_freq  = (g_freq+(((1000)*(sdr_count)) as f64));
-                    rx_lo.attr_write_int("frequency", (new_freq as i64));
-                                        if  (((512)/(4)))<=(sdr_count)  {
-                                                                                                sdr_count=0;
 };
                                         match buf.refill() {
                                                 Err(err) => {

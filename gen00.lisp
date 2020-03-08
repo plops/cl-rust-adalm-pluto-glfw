@@ -603,7 +603,7 @@ codegen-units = 1
 					    "/* NOTE:By passing NULL as the 'attr' argument to iio_device_attr_write, it is now possible to write all of the attributes of a device. The buffer must contain one block of data per attribute of the device, by the order they appear in the iio_device structure. The first four bytes of one block correspond to a 32-bit signed value in network order. If negative, the attribute is not written; if positive, it corresponds to the length of the data to write. In that case, the rest of the block must contain the data. */"
 					    
 					    ,(logprint "sdr_reader loop starts" `())
-					    (let* ((sdr_count 0))
+					    (do0 ;let* ((sdr_count 0))
 
 
 					      (do0
@@ -667,22 +667,24 @@ codegen-units = 1
 						      )
 						     ((Ok value)
 						      (setf g_freq value)
-						      #+nil (let ((rx_lo (dot phy (get_channel 3) (unwrap))))
-							(dot rx_lo (attr_write_float (string "frequency")
-										     value)))
-						      ;,(logprint "freq" `(g_freq))
+						      (let ((rx_lo (dot phy (get_channel 3) (unwrap))))
+							      (dot rx_lo (attr_write_int (string "frequency")
+											 (coerce value i64))))
+					;,(logprint "freq" `(g_freq))
 						      )))
 					       
-						 (incf sdr_count)
-					       
-						 (let ((rx_lo (dot phy (get_channel 3) (unwrap)))
-						       (new_freq (+ g_freq (coerce (* 1000 sdr_count) f64))))
-						   ;,(logprint "freq" `(new_freq))
-						   (dot rx_lo (attr_write_int (string "frequency")
-									      (coerce new_freq i64)))
-						   )
-						 (when (<= (/ ,tex-height 4) sdr_count)
-						   (setf sdr_count 0))
+						 #+nil (do0
+						  (incf sdr_count)
+						  
+						  
+						  (let ((rx_lo (dot phy (get_channel 3) (unwrap)))
+							(new_freq (+ g_freq (coerce (* 1000 sdr_count) f64))))
+					;,(logprint "freq" `(new_freq))
+						    (dot rx_lo (attr_write_int (string "frequency")
+									       (coerce new_freq i64)))
+						    )
+						  (when (<= (/ ,tex-height 4) sdr_count)
+						    (setf sdr_count 0)))
 
 						 #+nil (if (== 0 (dot buf
 								      (poll_fd)
