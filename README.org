@@ -1,3 +1,12 @@
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/plops/cl-rust-adalm-pluto-glfw)
+
+# Purpose and Scope
+
+The cl-rust-adalm-pluto-glfw repository implements a real-time Software Defined Radio (SDR) spectrum analyzer for the Analog Devices ADALM-PLUTO SDR device. The application acquires I/Q samples from the PlutoSDR hardware, performs Fast Fourier Transform (FFT) analysis, and displays the frequency spectrum as a scrolling waterfall visualization using an ImGui-based graphical interface.
+
+This project employs a distinctive meta-programming architecture: the actual Rust application code is not hand-written but is generated from Common Lisp source code using the cl-rust-generator library. This approach enables higher-level abstraction and code templating while producing performant, compiled Rust executables suitable for real-time signal processing.
+
+
 [[https://github.com/plops/cl-rust-adalm-pluto-glfw/blob/master/doc/2020-03-08-165218_1405x810_scrot.png?raw=true]]
 Screen recording:
 [[https://github.com/plops/cl-rust-adalm-pluto-glfw/blob/master/doc/screen_pluto-2020-03-08_16.48.32.mkv?raw=true]]
