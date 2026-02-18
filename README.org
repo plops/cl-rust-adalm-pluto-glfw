@@ -1,6 +1,4 @@
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/plops/cl-rust-adalm-pluto-glfw)
-
-# Purpose and Scope
+* Purpose and scope
 
 The cl-rust-adalm-pluto-glfw repository implements a real-time Software Defined Radio (SDR) spectrum analyzer for the Analog Devices ADALM-PLUTO SDR device. The application acquires I/Q samples from the PlutoSDR hardware, performs Fast Fourier Transform (FFT) analysis, and displays the frequency spectrum as a scrolling waterfall visualization using an ImGui-based graphical interface.
 
